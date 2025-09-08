@@ -63,6 +63,9 @@ const UploadInterface = () => {
         .from('videos')
         .getPublicUrl(fileName);
 
+      // Generate AR target image
+      const arTargetImageUrl = await generateARTargetImage(fileName);
+
       // Create album
       const { data: albumResult, error: albumError } = await supabase
         .from('albums')
@@ -74,7 +77,7 @@ const UploadInterface = () => {
 
       if (albumError) throw albumError;
 
-      // Create album page
+      // Create album page with AR target
       const { data: pageResult, error: pageError } = await supabase
         .from('album_pages')
         .insert([
@@ -82,6 +85,9 @@ const UploadInterface = () => {
             album_id: albumResult.id,
             page_no: 1,
             video_url: urlData.publicUrl,
+            ar_target_image_url: arTargetImageUrl,
+            ar_target_width_mm: 210,
+            ar_target_height_mm: 297,
             overlay_json: {
               title: "Annual Day 2025",
               event: "Class 5 Performance",
@@ -111,6 +117,60 @@ const UploadInterface = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const generateARTargetImage = async (videoFileName: string): Promise<string> => {
+    // For MVP, generate a simple colored pattern that can be detected
+    const canvas = document.createElement('canvas');
+    canvas.width = 210;
+    canvas.height = 297;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Create unique pattern based on video filename
+    const hash = videoFileName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hue = hash % 360;
+    
+    // Draw gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, `hsl(${hue}, 70%, 60%)`);
+    gradient.addColorStop(1, `hsl(${(hue + 180) % 360}, 70%, 40%)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add unique pattern for detection
+    ctx.fillStyle = 'white';
+    for (let i = 0; i < 5; i++) {
+      const x = (hash * (i + 1)) % (canvas.width - 20);
+      const y = (hash * (i + 2)) % (canvas.height - 20);
+      ctx.fillRect(x, y, 20, 20);
+    }
+    
+    // Convert to blob and upload
+    return new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          resolve('');
+          return;
+        }
+        
+        const targetFileName = `ar-target-${Date.now()}.png`;
+        const { data, error } = await supabase.storage
+          .from('videos')
+          .upload(targetFileName, blob);
+          
+        if (error) {
+          console.error('Error uploading AR target:', error);
+          resolve('');
+          return;
+        }
+        
+        const { data: urlData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(targetFileName);
+          
+        resolve(urlData.publicUrl);
+      }, 'image/png');
+    });
   };
 
   return (

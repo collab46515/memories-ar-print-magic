@@ -17,6 +17,9 @@ export type Database = {
       album_pages: {
         Row: {
           album_id: string
+          ar_target_height_mm: number | null
+          ar_target_image_url: string | null
+          ar_target_width_mm: number | null
           created_at: string
           height_mm: number | null
           id: string
@@ -29,6 +32,9 @@ export type Database = {
         }
         Insert: {
           album_id: string
+          ar_target_height_mm?: number | null
+          ar_target_image_url?: string | null
+          ar_target_width_mm?: number | null
           created_at?: string
           height_mm?: number | null
           id?: string
@@ -41,6 +47,9 @@ export type Database = {
         }
         Update: {
           album_id?: string
+          ar_target_height_mm?: number | null
+          ar_target_image_url?: string | null
+          ar_target_width_mm?: number | null
           created_at?: string
           height_mm?: number | null
           id?: string
