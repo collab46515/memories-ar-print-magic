@@ -419,10 +419,24 @@ const UploadInterface = () => {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          window.print();
+                          if (albumData.page?.ar_target_image_url) {
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {
+                              printWindow.document.write(`
+                                <html>
+                                  <head><title>AR Target</title></head>
+                                  <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+                                    <img src="${albumData.page.ar_target_image_url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                              printWindow.print();
+                            }
+                          }
                         }}
                       >
-                        🖨️ Print Page
+                        🖨️ Print AR Target
                       </Button>
                     </div>
                   </div>
