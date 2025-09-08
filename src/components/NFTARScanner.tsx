@@ -228,7 +228,33 @@ const NFTARScanner = ({ onVideoDetected }: NFTARScannerProps) => {
   };
 
   const openNFTCreator = () => {
-    window.open('https://carnaux.github.io/NFT-Marker-Creator/', '_blank');
+    addDebug('🔗 Opening NFT Marker Creator...');
+    
+    try {
+      const newWindow = window.open('https://carnaux.github.io/NFT-Marker-Creator/', '_blank', 'noopener,noreferrer');
+      
+      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        addDebug('❌ Popup blocked - showing instructions');
+        toast({
+          title: "Popup Blocked",
+          description: "Please allow popups or manually visit: carnaux.github.io/NFT-Marker-Creator",
+          variant: "destructive"
+        });
+      } else {
+        addDebug('✅ NFT Creator opened in new tab');
+        toast({
+          title: "🔗 NFT Creator Opened",
+          description: "Upload your album page image to generate tracking files",
+        });
+      }
+    } catch (error) {
+      addDebug('❌ Error opening NFT Creator: ' + (error as Error).message);
+      toast({
+        title: "Error Opening Link",
+        description: "Please manually visit: carnaux.github.io/NFT-Marker-Creator",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
