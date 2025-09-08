@@ -2,27 +2,127 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, Video, FileImage, Download } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const UploadInterface = () => {
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [albumGenerated, setAlbumGenerated] = useState(false);
+  const [albumData, setAlbumData] = useState<any>(null);
+  const { toast } = useToast();
 
-  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Create a temporary URL for preview
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadedFile(file);
+    
+    try {
+      // Create preview URL
       const videoUrl = URL.createObjectURL(file);
       setUploadedVideo(videoUrl);
+      
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload(fileName, file);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Video uploaded successfully!",
+        description: "Ready to generate album page.",
+      });
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const generateAlbumPage = async () => {
+    if (!uploadedFile) return;
+    
     setIsGenerating(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsGenerating(false);
-    setAlbumGenerated(true);
+    
+    try {
+      // Upload video to storage if not already done
+      const fileExt = uploadedFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(fileName, uploadedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(fileName);
+
+      // Create album
+      const { data: albumData, error: albumError } = await supabase
+        .from('albums')
+        .insert([
+          { name: 'School Memories Album' }
+        ])
+        .select()
+        .single();
+
+      if (albumError) throw albumError;
+
+      // Create album page
+      const { data: pageData, error: pageError } = await supabase
+        .from('album_pages')
+        .insert([
+          {
+            album_id: albumData.id,
+            page_no: 1,
+            video_url: urlData.publicUrl,
+            overlay_json: {
+              title: "Annual Day 2025",
+              event: "Class 5 Performance",
+              student_name: ""
+            }
+          }
+        ])
+        .select()
+        .single();
+
+      if (pageError) throw pageError;
+
+      setAlbumData({ album: albumData, page: pageData });
+      
+      toast({
+        title: "Album page generated!",
+        description: "Ready for printing and AR scanning.",
+      });
+      
+    } catch (error) {
+      console.error('Generation error:', error);
+      toast({
+        title: "Generation failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -83,7 +183,8 @@ const UploadInterface = () => {
                     variant="outline" 
                     onClick={() => {
                       setUploadedVideo(null);
-                      setAlbumGenerated(false);
+                      setUploadedFile(null);
+                      setAlbumData(null);
                     }}
                   >
                     Upload New Video
@@ -100,7 +201,7 @@ const UploadInterface = () => {
               Step 2: Album Page Preview
             </h3>
             
-            {!albumGenerated ? (
+            {!albumData ? (
               <div className="flex items-center justify-center h-64 bg-muted rounded-lg">
                 <div className="text-center">
                   <FileImage className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -136,7 +237,7 @@ const UploadInterface = () => {
         </div>
 
         {/* Next Steps */}
-        {albumGenerated && (
+        {albumData && (
           <div className="mt-12 text-center">
             <Card className="p-8 max-w-3xl mx-auto shadow-medium bg-gradient-secondary/10">
               <h3 className="text-2xl font-semibold mb-4">Ready for AR Magic! 🎉</h3>
