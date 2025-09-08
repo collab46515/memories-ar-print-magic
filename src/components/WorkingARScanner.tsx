@@ -45,30 +45,24 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
       
       // Add event listeners for debugging
       video.onloadstart = () => addDebugMessage('📡 Video loading started');
-      video.onloadeddata = () => addDebugMessage('✅ Video data loaded');
-      video.oncanplay = () => addDebugMessage('▶️ Video can start playing');
+      video.onloadeddata = () => addDebugMessage('✅ Video data loaded - ready for user tap');
+      video.oncanplay = () => addDebugMessage('▶️ Video ready - tap to play with sound');
       video.onerror = (e) => addDebugMessage('❌ Video error: ' + (e as Event).type);
       video.onplay = () => addDebugMessage('🎵 Video started playing!');
       video.onpause = () => addDebugMessage('⏸️ Video paused');
       
       video.src = pendingVideoUrl;
       
-      video.play().then(() => {
-        addDebugMessage('🎵 Play() completed successfully');
-        toast({
-          title: "🎬 AR Video Playing!",
-          description: "Video overlayed with audio",
-        });
-        onVideoDetected?.(pendingVideoUrl);
-        setPendingVideoUrl(null);
-      }).catch((error) => {
-        addDebugMessage('❌ Play failed: ' + error.message);
-        toast({
-          title: "Video Playback Error", 
-          description: "Tap the video to enable audio and play",
-          variant: "destructive"
-        });
+      // Don't auto-play, let user tap to start
+      addDebugMessage('📱 Video loaded - tap the video to play with sound');
+      
+      toast({
+        title: "🎬 AR Video Ready!",
+        description: "Tap the video to play with sound",
       });
+      
+      onVideoDetected?.(pendingVideoUrl);
+      setPendingVideoUrl(null);
     }
   }, [pendingVideoUrl, isPlaying, onVideoDetected, toast]);
 
@@ -252,13 +246,29 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
           {/* AR Video Overlay */}
           {isPlaying && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <video 
-                ref={arVideoRef}
-                className="w-4/5 h-4/5 object-cover rounded-lg border-4 border-green-500"
-                controls
-                autoPlay
-                playsInline
-              />
+              <div className="relative w-4/5 h-4/5">
+                <video 
+                  ref={arVideoRef}
+                  className="w-full h-full object-cover rounded-lg border-4 border-green-500"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  onClick={() => {
+                    if (arVideoRef.current) {
+                      if (arVideoRef.current.paused) {
+                        arVideoRef.current.play();
+                        addDebugMessage('👆 User tapped - playing video');
+                      } else {
+                        arVideoRef.current.pause();
+                        addDebugMessage('👆 User tapped - pausing video');
+                      }
+                    }
+                  }}
+                />
+                <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
+                  📱 Tap video to play with sound
+                </div>
+              </div>
             </div>
           )}
           
