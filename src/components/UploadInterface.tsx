@@ -336,12 +336,35 @@ const UploadInterface = () => {
                         src={albumData.page.ar_target_image_url}
                         alt="AR Target" 
                         className="w-full h-full object-contain rounded"
+                        onError={(e) => {
+                          console.error('Image failed to load:', albumData.page.ar_target_image_url);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', albumData.page.ar_target_image_url);
+                        }}
+                        crossOrigin="anonymous"
                       />
                     ) : (
                       <div className="text-center">
                         <Video className="w-12 h-12 text-primary mx-auto mb-2" />
                         <p className="text-sm font-medium">{albumData.page?.overlay_json?.title || "Annual Day 2025"}</p>
                         <p className="text-xs text-muted-foreground">{albumData.page?.overlay_json?.event || "Class 5 Performance"}</p>
+                      </div>
+                    )}
+                    
+                    {/* Fallback content when image fails to load */}
+                    {albumData.page?.ar_target_image_url && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center text-center"
+                        style={{ display: 'none' }}
+                        id="image-fallback"
+                      >
+                        <div>
+                          <Video className="w-12 h-12 text-primary mx-auto mb-2" />
+                          <p className="text-sm font-medium">AR Target Generated</p>
+                          <p className="text-xs text-muted-foreground">Preview unavailable - download to view</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -355,11 +378,15 @@ const UploadInterface = () => {
                       variant="premium" 
                       size="lg" 
                       className="w-full"
-                      onClick={() => window.open(albumData.page?.ar_target_image_url, '_blank')}
+                      onClick={() => {
+                        if (albumData.page?.ar_target_image_url) {
+                          window.open(albumData.page.ar_target_image_url, '_blank');
+                        }
+                      }}
                       disabled={!albumData.page?.ar_target_image_url}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Download AR Target (PNG)
+                      Open AR Target (Full Size)
                     </Button>
                     
                     <div className="grid grid-cols-2 gap-2">
@@ -367,20 +394,22 @@ const UploadInterface = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = albumData.page?.ar_target_image_url || '';
-                          link.download = `ar-target-${Date.now()}.png`;
-                          link.click();
+                          if (albumData.page?.ar_target_image_url) {
+                            const link = document.createElement('a');
+                            link.href = albumData.page.ar_target_image_url;
+                            link.download = `ar-target-${Date.now()}.png`;
+                            link.click();
+                          }
                         }}
                       >
-                        Save Image
+                        💾 Save PNG
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => window.print()}
                       >
-                        Print Page
+                        🖨️ Print Page
                       </Button>
                     </div>
                   </div>
