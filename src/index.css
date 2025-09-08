@@ -2,41 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Memories AR Platform Design System - Education-focused B2B styling */
 
 @layer base {
   :root {
+    /* Core Brand Colors - Professional Education Theme */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Deep Education Blue - Trustworthy & Professional */
+    --primary: 215 85% 25%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 215 85% 30%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Warm Educational Orange - Friendly & Approachable */
+    --secondary: 25 95% 65%;
+    --secondary-foreground: 215 25% 15%;
+    --secondary-hover: 25 95% 60%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Clean Grays */
+    --muted: 215 15% 96%;
+    --muted-foreground: 215 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Creative Purple - Innovation & Technology */
+    --accent: 260 75% 60%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 215 15% 90%;
+    --input: 215 15% 94%;
+    --ring: 215 85% 25%;
 
     --radius: 0.5rem;
+
+    /* Brand Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(215 85% 25%), hsl(260 75% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(25 95% 65%), hsl(25 95% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(215 85% 25%) 0%, hsl(260 75% 60%) 50%, hsl(25 95% 65%) 100%);
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px hsl(215 25% 15% / 0.08);
+    --shadow-medium: 0 8px 30px hsl(215 25% 15% / 0.12);
+    --shadow-strong: 0 12px 40px hsl(215 25% 15% / 0.15);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +119,25 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+  
+  /* Custom Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 }
