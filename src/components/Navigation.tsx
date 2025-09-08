@@ -43,13 +43,22 @@ const Navigation = () => {
               Demo Scanner
             </Button>
           )}
+          {location.pathname !== '/simple-ar' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/simple-ar')}
+            >
+              🎯 Simple AR
+            </Button>
+          )}
           {location.pathname !== '/real-ar' && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => navigate('/real-ar')}
             >
-              🎯 Real AR
+              🔬 Advanced AR
             </Button>
           )}
           
