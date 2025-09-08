@@ -151,7 +151,7 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
     }, 1000); // Every 1 second
   };
 
-  const playARVideo = () => {
+  const playARVideo = async () => {
     if (arTargets.length === 0) return;
     
     setIsPlaying(true);
@@ -159,15 +159,33 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
     
     if (arVideoRef.current && target) {
       console.log('🎬 Playing AR video:', target.video_url);
-      arVideoRef.current.src = target.video_url;
-      arVideoRef.current.play();
       
-      toast({
-        title: "🎬 AR Video Playing!",
-        description: "Video overlayed with audio",
-      });
-      
-      onVideoDetected?.(target.video_url);
+      try {
+        arVideoRef.current.src = target.video_url;
+        
+        // Add event listeners for debugging
+        arVideoRef.current.onloadstart = () => console.log('📡 Video loading started');
+        arVideoRef.current.onloadeddata = () => console.log('✅ Video data loaded');
+        arVideoRef.current.oncanplay = () => console.log('▶️ Video can start playing');
+        arVideoRef.current.onerror = (e) => console.error('❌ Video error:', e);
+        
+        await arVideoRef.current.play();
+        console.log('🎵 Video playing successfully with audio');
+        
+        toast({
+          title: "🎬 AR Video Playing!",
+          description: "Video overlayed with audio",
+        });
+        
+        onVideoDetected?.(target.video_url);
+      } catch (error) {
+        console.error('❌ Failed to play video:', error);
+        toast({
+          title: "Video Playback Error",
+          description: "Tap the video to enable audio and play",
+          variant: "destructive"
+        });
+      }
     }
   };
 
