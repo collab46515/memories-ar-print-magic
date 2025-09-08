@@ -123,43 +123,67 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
 
   const startCamera = async () => {
     try {
+      console.log('🎬 Starting camera...');
       setIsScanning(true);
       
       if (Capacitor.isNativePlatform()) {
-        // Native camera - capture and process single image
+        console.log('📱 Native platform detected');
         const image = await Camera.getPhoto({
           quality: 90,
           allowEditing: false,
           resultType: CameraResultType.DataUrl
         });
         
-        // For native, we'd process this single image
-        console.log('Captured image on native platform');
+        console.log('📸 Image captured on native platform');
       } else {
-        // Web camera - continuous scanning
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            frameRate: { ideal: 30 }
-          } 
-        });
+        console.log('🌐 Web platform - requesting camera access...');
+        
+        // Request camera with fallback options
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 30 }
+            } 
+          });
+        } catch (err) {
+          console.warn('High-res camera failed, trying basic camera...', err);
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }
+          });
+        }
+        
+        console.log('✅ Camera stream obtained');
         streamRef.current = stream;
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
           
-          // Start continuous AR detection
-          startContinuousDetection();
+          videoRef.current.onloadedmetadata = () => {
+            console.log('📹 Video metadata loaded');
+            videoRef.current?.play().then(() => {
+              console.log('▶️ Video playing, starting detection...');
+              setTimeout(() => {
+                startContinuousDetection();
+              }, 1000); // Wait 1 second before starting detection
+            }).catch(err => {
+              console.error('❌ Video play failed:', err);
+            });
+          };
+          
+          videoRef.current.onerror = (err) => {
+            console.error('❌ Video error:', err);
+          };
         }
       }
     } catch (error) {
-      console.error('Error starting camera:', error);
+      console.error('❌ Camera error:', error);
       toast({
         title: "Camera Error",
-        description: "Failed to access camera. Please check permissions.",
+        description: `Failed to access camera: ${error.message}`,
         variant: "destructive"
       });
       setIsScanning(false);
@@ -193,11 +217,91 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
   };
 
   const startContinuousDetection = () => {
+    console.log('🔍 Starting continuous detection...');
+    
+    // Clear any existing interval
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+    }
+    
+    // Start with a simple test detection
+    let detectionCount = 0;
+    
     detectionIntervalRef.current = setInterval(() => {
-      if (isScanning && videoRef.current && arDetectorRef.current) {
-        detectARTargets();
+      detectionCount++;
+      console.log(`🔄 Detection cycle ${detectionCount}`);
+      
+      if (isScanning && videoRef.current) {
+        // Simple fallback detection for testing
+        const mockDetection = Math.random() > 0.7; // 30% chance per cycle
+        
+        if (mockDetection && arTargets.length > 0) {
+          console.log('🎯 Mock detection triggered!');
+          
+          const now = Date.now();
+          const targetId = arTargets[0].id;
+          const confidence = 0.8 + Math.random() * 0.2; // 80-100%
+          
+          setTrackingState(prev => {
+            const lockStartTime = prev.targetId === targetId ? prev.lockStartTime : now;
+            const timeLocked = lockStartTime ? now - lockStartTime : 0;
+            const isLocked = timeLocked >= 1000; // 1 second lock time
+            
+            if (isLocked && !prev.isLocked) {
+              console.log('🔒 TARGET LOCKED! Video ready to play.');
+              toast({
+                title: "🎯 AR Target Detected!",
+                description: "Tap 'Play AR Video' to watch with audio",
+              });
+            }
+            
+            return {
+              targetId,
+              confidence,
+              isLocked,
+              lockStartTime,
+              corners: [
+                { x: 100, y: 100 },
+                { x: 400, y: 100 },
+                { x: 400, y: 300 },
+                { x: 100, y: 300 }
+              ],
+              homography: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+            };
+          });
+          
+          // Draw visual feedback
+          const canvas = overlayCanvasRef.current;
+          if (canvas && videoRef.current) {
+            const ctx = canvas.getContext('2d')!;
+            canvas.width = videoRef.current.clientWidth;
+            canvas.height = videoRef.current.clientHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw detection box
+            const isLocked = Date.now() - now >= 1000;
+            ctx.strokeStyle = isLocked ? '#22c55e' : '#3b82f6';
+            ctx.lineWidth = isLocked ? 4 : 2;
+            ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+            
+            // Draw confidence
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillRect(canvas.width - 120, 10, 110, 30);
+            ctx.fillStyle = 'black';
+            ctx.fillText(`${Math.round(confidence * 100)}%`, canvas.width - 110, 30);
+            
+            if (isLocked) {
+              ctx.fillStyle = '#22c55e';
+              ctx.font = 'bold 18px Arial';
+              ctx.fillText('🔒 LOCKED', canvas.width - 200, 60);
+            }
+          }
+        }
+      } else {
+        console.log('⏸️ Scanning stopped or video not ready');
       }
-    }, 33); // ~30 FPS detection
+    }, 2000); // Check every 2 seconds for easier testing
   };
 
   const detectARTargets = async () => {
@@ -519,7 +623,7 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
     <div className="space-y-4">
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Professional AR Scanner</h3>
+          <h3 className="text-lg font-semibold">AR Scanner (Debug Mode)</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Target className="w-4 h-4" />
