@@ -25,20 +25,8 @@ const UploadInterface = () => {
       const videoUrl = URL.createObjectURL(file);
       setUploadedVideo(videoUrl);
       
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .upload(fileName, file);
-
-      if (error) {
-        throw error;
-      }
-
       toast({
-        title: "Video uploaded successfully!",
+        title: "Video loaded successfully!",
         description: "Ready to generate album page.",
       });
       
@@ -60,7 +48,7 @@ const UploadInterface = () => {
     setIsGenerating(true);
     
     try {
-      // Upload video to storage if not already done
+      // Upload video to storage
       const fileExt = uploadedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       
@@ -76,7 +64,7 @@ const UploadInterface = () => {
         .getPublicUrl(fileName);
 
       // Create album
-      const { data: albumData, error: albumError } = await supabase
+      const { data: albumResult, error: albumError } = await supabase
         .from('albums')
         .insert([
           { name: 'School Memories Album' }
@@ -87,11 +75,11 @@ const UploadInterface = () => {
       if (albumError) throw albumError;
 
       // Create album page
-      const { data: pageData, error: pageError } = await supabase
+      const { data: pageResult, error: pageError } = await supabase
         .from('album_pages')
         .insert([
           {
-            album_id: albumData.id,
+            album_id: albumResult.id,
             page_no: 1,
             video_url: urlData.publicUrl,
             overlay_json: {
@@ -106,7 +94,7 @@ const UploadInterface = () => {
 
       if (pageError) throw pageError;
 
-      setAlbumData({ album: albumData, page: pageData });
+      setAlbumData({ album: albumResult, page: pageResult });
       
       toast({
         title: "Album page generated!",
@@ -212,16 +200,16 @@ const UploadInterface = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Mock Album Page Preview */}
+                {/* Album Page Preview */}
                 <div className="bg-white p-6 rounded-lg shadow-soft border-2 border-secondary/20">
                   <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-4 flex items-center justify-center">
                     <div className="text-center">
                       <Video className="w-12 h-12 text-primary mx-auto mb-2" />
-                      <p className="text-sm font-medium">Annual Day 2025</p>
-                      <p className="text-xs text-muted-foreground">Class 5 Performance</p>
+                      <p className="text-sm font-medium">{albumData.page?.overlay_json?.title || "Annual Day 2025"}</p>
+                      <p className="text-xs text-muted-foreground">{albumData.page?.overlay_json?.event || "Class 5 Performance"}</p>
                     </div>
                   </div>
-                  <h4 className="font-semibold text-center mb-2">School Memories Album</h4>
+                  <h4 className="font-semibold text-center mb-2">{albumData.album?.name || "School Memories Album"}</h4>
                   <p className="text-xs text-center text-muted-foreground">
                     Scan this page with the Memories app to watch the video!
                   </p>
