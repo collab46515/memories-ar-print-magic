@@ -424,9 +424,16 @@ const UploadInterface = () => {
                             if (printWindow) {
                               printWindow.document.write(`
                                 <html>
-                                  <head><title>AR Target</title></head>
-                                  <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;">
-                                    <img src="${albumData.page.ar_target_image_url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                                  <head>
+                                    <title>AR Target</title>
+                                    <style>
+                                      @page { margin: 0; size: A4; }
+                                      body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; }
+                                      img { max-width: calc(100% - 40px); max-height: calc(100% - 40px); object-fit: contain; }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <img src="${albumData.page.ar_target_image_url}" />
                                   </body>
                                 </html>
                               `);
