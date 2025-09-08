@@ -17,6 +17,7 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
   const [detectionProgress, setDetectionProgress] = useState(0);
   const [currentTarget, setCurrentTarget] = useState<any>(null);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [pendingPlay, setPendingPlay] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const arVideoRef = useRef<HTMLVideoElement>(null);
@@ -36,18 +37,53 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
     loadARTargets();
   }, []);
 
+  // Handle video element after it's rendered
+  useEffect(() => {
+    if (pendingPlay && arVideoRef.current && currentTarget) {
+      addDebug('🎬 Video element ready, loading video...');
+      const video = arVideoRef.current;
+      
+      video.onloadstart = () => addDebug('📡 Video loading started');
+      video.onloadeddata = () => {
+        addDebug('✅ AR video loaded and ready');
+        toast({
+          title: "🎬 AR Video Ready!",
+          description: "Tap the video to play with sound",
+        });
+      };
+      video.onerror = (e) => addDebug('❌ Video error: ' + (e as Event).type);
+      video.onplay = () => addDebug('🎵 Video started playing');
+      video.onpause = () => addDebug('⏸️ Video paused');
+      
+      video.src = currentTarget.video_url;
+      addDebug('📹 Video source set: ' + currentTarget.video_url.substring(0, 50) + '...');
+      
+      setPendingPlay(false);
+      onVideoDetected?.(currentTarget.video_url);
+    }
+  }, [pendingPlay, currentTarget, onVideoDetected, toast]);
+
   const loadARTargets = async () => {
     try {
+      addDebug('📋 Loading AR targets...');
       const { data: albumPages, error } = await supabase
         .from('album_pages')
         .select('*')
         .not('ar_target_image_url', 'is', null);
       
       if (error) throw error;
-      console.log(`📋 Loaded ${albumPages?.length || 0} AR targets`);
+      addDebug(`📋 Loaded ${albumPages?.length || 0} AR targets`);
       setArTargets(albumPages || []);
+      
+      if (albumPages && albumPages.length > 0) {
+        addDebug('🎯 Setting first target as current');
+        setCurrentTarget(albumPages[0]);
+      } else {
+        addDebug('⚠️ No AR targets found in database');
+      }
     } catch (error) {
       console.error('Error loading AR targets:', error);
+      addDebug('❌ Failed to load targets: ' + (error as Error).message);
     }
   };
 
@@ -120,8 +156,11 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
     console.log('🔍 Starting simple AR detection...');
     
     let frame = 0;
-    const target = arTargets[0]; // Use first target
-    setCurrentTarget(target);
+    // Don't set target here, it should already be set from loadARTargets
+    if (!currentTarget && arTargets.length > 0) {
+      addDebug('🔧 Setting current target during detection...');
+      setCurrentTarget(arTargets[0]);
+    }
 
     detectionIntervalRef.current = setInterval(() => {
       frame++;
@@ -176,40 +215,28 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
 
   const playARVideo = () => {
     addDebug('🎯 Play AR Video clicked!');
-    addDebug(`Target: ${currentTarget ? 'Found' : 'Missing'}`);
-    addDebug(`Video element: ${arVideoRef.current ? 'Found' : 'Missing'}`);
+    addDebug(`Targets loaded: ${arTargets.length}`);
+    addDebug(`Current target: ${currentTarget ? 'Found' : 'Missing'}`);
     
-    if (!currentTarget || !arVideoRef.current) {
-      addDebug('❌ Missing target or video ref');
-      toast({
-        title: "Error",
-        description: "No AR target or video element found",
-        variant: "destructive"
-      });
+    if (!currentTarget) {
+      addDebug('❌ No current target - checking database...');
+      if (arTargets.length === 0) {
+        addDebug('❌ No AR targets in database');
+        toast({
+          title: "No AR Targets",
+          description: "Please upload a video first to create AR targets",
+          variant: "destructive"
+        });
+      } else {
+        addDebug('🔧 Setting first target from database...');
+        setCurrentTarget(arTargets[0]);
+      }
       return;
     }
     
-    addDebug('🎬 Setting isPlaying to true...');
+    addDebug('🎬 Setting up video overlay...');
     setIsPlaying(true);
-    
-    addDebug('📹 Setting video source...');
-    const video = arVideoRef.current;
-    video.src = currentTarget.video_url;
-    
-    // Add debug event listeners
-    video.onloadstart = () => addDebug('📡 Video loading started');
-    video.onloadeddata = () => {
-      addDebug('✅ AR video loaded and ready');
-      toast({
-        title: "🎬 AR Video Ready!",
-        description: "Tap the video to play with sound",
-      });
-    };
-    video.onerror = (e) => addDebug('❌ Video error: ' + (e as Event).type);
-    video.onplay = () => addDebug('🎵 Video started playing');
-    video.onpause = () => addDebug('⏸️ Video paused');
-
-    onVideoDetected?.(currentTarget.video_url);
+    setPendingPlay(true);
   };
 
   const stopARVideo = () => {
