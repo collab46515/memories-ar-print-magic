@@ -70,6 +70,15 @@ const Navigation = () => {
               🔬 Advanced AR
             </Button>
           )}
+          {location.pathname !== '/nft-ar' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/nft-ar')}
+            >
+              🎯 NFT AR
+            </Button>
+          )}
           
           {user ? (
             <div className="flex items-center space-x-2">
