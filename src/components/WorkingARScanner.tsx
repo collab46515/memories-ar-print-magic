@@ -16,12 +16,19 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
   const [detectionActive, setDetectionActive] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [debugMessages, setDebugMessages] = useState<string[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const arVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  // Debug helper
+  const addDebugMessage = (message: string) => {
+    console.log(message);
+    setDebugMessages(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
 
   // Load AR targets
   useEffect(() => {
@@ -152,16 +159,17 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
   };
 
   const playARVideo = async () => {
-    console.log('🎯 Play AR Video clicked!', { targetsCount: arTargets.length, isLocked });
+    addDebugMessage('🎯 Play AR Video clicked!');
+    addDebugMessage(`Targets: ${arTargets.length}, Locked: ${isLocked}`);
     if (arTargets.length === 0) {
-      console.log('❌ No AR targets available');
+      addDebugMessage('❌ No AR targets available');
       return;
     }
     
-    console.log('🎬 Setting isPlaying to true');
+    addDebugMessage('🎬 Setting isPlaying to true');
     setIsPlaying(true);
     const target = arTargets[0]; // Use first target
-    console.log('🎯 Selected target:', target);
+    addDebugMessage(`🎯 Selected target: ${target?.video_url || 'undefined'}`);
     
     if (arVideoRef.current && target) {
       console.log('🎬 Playing AR video:', target.video_url);
@@ -331,6 +339,16 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
           </div>
         )}
       </Card>
+      
+      {/* Debug Console */}
+      {debugMessages.length > 0 && (
+        <Card className="p-3 bg-gray-100">
+          <div className="font-semibold mb-2 text-sm">🐛 Debug Console:</div>
+          {debugMessages.map((msg, i) => (
+            <div key={i} className="text-xs text-gray-700">{msg}</div>
+          ))}
+        </Card>
+      )}
       
       {isLocked && (
         <Card className="p-4 border-green-200 bg-green-50">
