@@ -172,19 +172,21 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
     addDebugMessage(`🎯 Selected target: ${target?.video_url || 'undefined'}`);
     
     if (arVideoRef.current && target) {
-      console.log('🎬 Playing AR video:', target.video_url);
+      addDebugMessage('🎬 Playing AR video: ' + target.video_url?.substring(0, 50) + '...');
       
       try {
         arVideoRef.current.src = target.video_url;
         
         // Add event listeners for debugging
-        arVideoRef.current.onloadstart = () => console.log('📡 Video loading started');
-        arVideoRef.current.onloadeddata = () => console.log('✅ Video data loaded');
-        arVideoRef.current.oncanplay = () => console.log('▶️ Video can start playing');
-        arVideoRef.current.onerror = (e) => console.error('❌ Video error:', e);
+        arVideoRef.current.onloadstart = () => addDebugMessage('📡 Video loading started');
+        arVideoRef.current.onloadeddata = () => addDebugMessage('✅ Video data loaded');
+        arVideoRef.current.oncanplay = () => addDebugMessage('▶️ Video can start playing');
+        arVideoRef.current.onerror = (e) => addDebugMessage('❌ Video error: ' + (e as Event).type);
+        arVideoRef.current.onplay = () => addDebugMessage('🎵 Video started playing!');
+        arVideoRef.current.onpause = () => addDebugMessage('⏸️ Video paused');
         
         await arVideoRef.current.play();
-        console.log('🎵 Video playing successfully with audio');
+        addDebugMessage('🎵 Play() completed successfully');
         
         toast({
           title: "🎬 AR Video Playing!",
@@ -193,7 +195,7 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
         
         onVideoDetected?.(target.video_url);
       } catch (error) {
-        console.error('❌ Failed to play video:', error);
+        addDebugMessage('❌ Play failed: ' + (error as Error).message);
         toast({
           title: "Video Playback Error",
           description: "Tap the video to enable audio and play",
