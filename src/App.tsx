@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Scanner from "./pages/Scanner";
 import SimpleAR from "./pages/SimpleAR";
+import TrueAR from "./pages/TrueAR";
 import RealAR from "./pages/RealAR";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/simple-ar" element={<SimpleAR />} />
+            <Route path="/true-ar" element={<TrueAR />} />
             <Route path="/real-ar" element={<RealAR />} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

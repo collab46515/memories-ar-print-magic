@@ -52,6 +52,15 @@ const Navigation = () => {
               🎯 Simple AR
             </Button>
           )}
+          {location.pathname !== '/true-ar' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/true-ar')}
+            >
+              ✨ True AR
+            </Button>
+          )}
           {location.pathname !== '/real-ar' && (
             <Button 
               variant="outline" 
