@@ -13,55 +13,49 @@ const SimpleCamera = () => {
 
   const startCamera = async () => {
     try {
-      console.log('🎬 Starting simple camera test...');
+      // Immediate visual feedback
+      alert('Button clicked! Starting camera test...');
+      console.log('🎬 Button clicked - starting camera test');
+      
       setErrorMessage('');
       setIsActive(true);
 
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia not supported in this browser');
+      }
+
+      console.log('📱 getUserMedia is available');
+      
       // Very basic camera request
+      console.log('🎥 Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false
       });
 
-      console.log('✅ Camera stream obtained');
+      console.log('✅ Camera stream obtained, tracks:', stream.getTracks().length);
       streamRef.current = stream;
 
       if (videoRef.current) {
+        console.log('📺 Setting video source...');
         videoRef.current.srcObject = stream;
         
-        // Add event listeners
-        videoRef.current.onloadedmetadata = () => {
-          console.log('📹 Video metadata loaded');
-        };
-
-        videoRef.current.oncanplay = () => {
-          console.log('📹 Video can play');
-          videoRef.current?.play().then(() => {
-            console.log('▶️ Video playing successfully');
-            toast({
-              title: "Camera Working! 📹",
-              description: "Camera stream is active"
-            });
-          }).catch(err => {
-            console.error('❌ Video play error:', err);
-            setErrorMessage(`Play error: ${err.message}`);
-          });
-        };
-
-        videoRef.current.onerror = (err) => {
-          console.error('❌ Video element error:', err);
-          setErrorMessage('Video element error');
-        };
+        // Simple play attempt
+        try {
+          await videoRef.current.play();
+          console.log('▶️ Video playing!');
+          alert('Success! Camera is working!');
+        } catch (playError) {
+          console.error('❌ Play failed:', playError);
+          alert(`Play failed: ${playError.message}`);
+        }
       }
 
     } catch (error: any) {
       console.error('❌ Camera error:', error);
+      alert(`Camera failed: ${error.message}`);
       setErrorMessage(`Camera error: ${error.message}`);
-      toast({
-        title: "Camera Failed",
-        description: error.message,
-        variant: "destructive"
-      });
       setIsActive(false);
     }
   };
@@ -109,7 +103,13 @@ const SimpleCamera = () => {
         
         <div className="space-y-2">
           {!isActive ? (
-            <Button onClick={startCamera} className="w-full">
+            <Button 
+              onClick={() => {
+                console.log('🔴 Button clicked!');
+                startCamera();
+              }} 
+              className="w-full"
+            >
               <CameraIcon className="w-4 h-4 mr-2" />
               Start Simple Camera
             </Button>
@@ -119,6 +119,18 @@ const SimpleCamera = () => {
               Stop Camera
             </Button>
           )}
+          
+          {/* Test button to verify JavaScript is working */}
+          <Button 
+            onClick={() => {
+              alert('JavaScript is working!');
+              console.log('✅ Test button works');
+            }}
+            variant="outline"
+            className="w-full"
+          >
+            🧪 Test JavaScript
+          </Button>
         </div>
         
         {errorMessage && (
