@@ -55,17 +55,18 @@ const NFTARScanner = ({ onVideoDetected }: NFTARScannerProps) => {
 
   const checkMarkerFiles = async () => {
     try {
-      // Check if marker files exist by trying to fetch one
-      const response = await fetch('/markers/page1/page1.fset');
-      setMarkerFilesExist(response.ok);
-      if (response.ok) {
-        addDebug('✅ NFT marker files found');
+      // More strict check - verify actual file content exists
+      const response = await fetch('/markers/page1/page1.fset', { method: 'HEAD' });
+      const exists = response.ok && response.status === 200 && response.headers.get('content-length') !== '0';
+      setMarkerFilesExist(exists);
+      if (exists) {
+        addDebug('✅ NFT marker files found and verified');
       } else {
-        addDebug('⚠️ NFT marker files not found - need to generate them');
+        addDebug('⚠️ NFT marker files missing - need to generate them first');
       }
     } catch (error) {
       setMarkerFilesExist(false);
-      addDebug('⚠️ NFT marker files not accessible');
+      addDebug('⚠️ NFT marker files not accessible - will show create button');
     }
   };
 
@@ -292,12 +293,10 @@ const NFTARScanner = ({ onVideoDetected }: NFTARScannerProps) => {
             </Button>
           )}
           
-          {!markerFilesExist && (
-            <Button onClick={openNFTCreator} variant="outline">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Create NFT Markers
-            </Button>
-          )}
+          <Button onClick={openNFTCreator} variant="outline">
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Create NFT Markers
+          </Button>
         </div>
       </Card>
       
