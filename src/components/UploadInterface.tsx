@@ -120,56 +120,86 @@ const UploadInterface = () => {
   };
 
   const generateARTargetImage = async (videoFileName: string): Promise<string> => {
-    // For MVP, generate a simple colored pattern that can be detected
-    const canvas = document.createElement('canvas');
-    canvas.width = 210;
-    canvas.height = 297;
-    const ctx = canvas.getContext('2d')!;
+    if (!uploadedFile) return '';
     
-    // Create unique pattern based on video filename
-    const hash = videoFileName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue = hash % 360;
+    // Extract first frame from video to use as AR target
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(uploadedFile);
     
-    // Draw gradient background
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, `hsl(${hue}, 70%, 60%)`);
-    gradient.addColorStop(1, `hsl(${(hue + 180) % 360}, 70%, 40%)`);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Add unique pattern for detection
-    ctx.fillStyle = 'white';
-    for (let i = 0; i < 5; i++) {
-      const x = (hash * (i + 1)) % (canvas.width - 20);
-      const y = (hash * (i + 2)) % (canvas.height - 20);
-      ctx.fillRect(x, y, 20, 20);
-    }
-    
-    // Convert to blob and upload
     return new Promise((resolve) => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          resolve('');
-          return;
-        }
+      video.addEventListener('loadeddata', () => {
+        // Set video to first frame
+        video.currentTime = 0.5; // 0.5 seconds in to avoid black frame
         
-        const targetFileName = `ar-target-${Date.now()}.png`;
-        const { data, error } = await supabase.storage
-          .from('videos')
-          .upload(targetFileName, blob);
+        video.addEventListener('seeked', async () => {
+          // Create canvas to capture frame
+          const canvas = document.createElement('canvas');
+          canvas.width = 512; // Standard AR target size
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d')!;
           
-        if (error) {
-          console.error('Error uploading AR target:', error);
-          resolve('');
-          return;
-        }
-        
-        const { data: urlData } = supabase.storage
-          .from('videos')
-          .getPublicUrl(targetFileName);
+          // Draw video frame to canvas, maintaining aspect ratio
+          const videoAspect = video.videoWidth / video.videoHeight;
+          let drawWidth = canvas.width;
+          let drawHeight = canvas.height;
+          let offsetX = 0;
+          let offsetY = 0;
           
-        resolve(urlData.publicUrl);
-      }, 'image/png');
+          if (videoAspect > 1) {
+            // Video is wider than square
+            drawHeight = canvas.width / videoAspect;
+            offsetY = (canvas.height - drawHeight) / 2;
+          } else {
+            // Video is taller than square
+            drawWidth = canvas.height * videoAspect;
+            offsetX = (canvas.width - drawWidth) / 2;
+          }
+          
+          // Fill background with white
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw video frame
+          ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+          
+          // Add tracking markers for better AR detection
+          ctx.fillStyle = 'black';
+          ctx.fillRect(0, 0, 20, 20); // Top-left
+          ctx.fillRect(canvas.width - 20, 0, 20, 20); // Top-right
+          ctx.fillRect(0, canvas.height - 20, 20, 20); // Bottom-left
+          ctx.fillRect(canvas.width - 20, canvas.height - 20, 20, 20); // Bottom-right
+          
+          // Convert to blob and upload
+          canvas.toBlob(async (blob) => {
+            if (!blob) {
+              resolve('');
+              return;
+            }
+            
+            const targetFileName = `ar-target-${Date.now()}.jpg`;
+            const { data, error } = await supabase.storage
+              .from('videos')
+              .upload(targetFileName, blob);
+              
+            if (error) {
+              console.error('Error uploading AR target:', error);
+              resolve('');
+              return;
+            }
+            
+            const { data: urlData } = supabase.storage
+              .from('videos')
+              .getPublicUrl(targetFileName);
+              
+            resolve(urlData.publicUrl);
+          }, 'image/jpeg', 0.9);
+          
+          // Cleanup
+          URL.revokeObjectURL(video.src);
+        }, { once: true });
+      }, { once: true });
+      
+      video.load();
     });
   };
 
