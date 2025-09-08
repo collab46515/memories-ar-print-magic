@@ -1,11 +1,18 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Camera } from 'lucide-react';
+import { Zap, Camera, LogOut, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b">
@@ -16,29 +23,60 @@ const Navigation = () => {
             <span className="text-lg font-semibold">Memories</span>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {location.pathname !== '/' && (
+        <div className="flex items-center space-x-4">
+          {location.pathname !== '/' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/')}
+            >
+              Upload
+            </Button>
+          )}
+          {location.pathname !== '/scanner' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/scanner')}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Scanner
+            </Button>
+          )}
+          
+          {user ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground hidden sm:inline">
+                {user.email}
+              </span>
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/')}
+                onClick={handleSignOut}
               >
-                Upload
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </Button>
-            )}
-            {location.pathname !== '/scanner' && (
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/scanner')}
+                onClick={() => navigate('/auth')}
               >
-                <Camera className="w-4 h-4 mr-2" />
-                Scanner
+                <User className="w-4 h-4 mr-2" />
+                Sign In
               </Button>
-            )}
-            <Button variant="outline" size="sm">Log In</Button>
-            <Button size="sm">Sign Up</Button>
-          </div>
+              <Button 
+                size="sm"
+                onClick={() => navigate('/auth')}
+              >
+                Sign Up
+              </Button>
+            </div>
+          )}
+        </div>
         </div>
       </div>
     </nav>
