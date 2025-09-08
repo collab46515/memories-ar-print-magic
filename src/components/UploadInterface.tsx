@@ -375,10 +375,13 @@ const UploadInterface = () => {
                   
                   <div className="space-y-2">
                     <Button 
+                      type="button"
                       variant="premium" 
                       size="lg" 
                       className="w-full"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (albumData.page?.ar_target_image_url) {
                           window.open(albumData.page.ar_target_image_url, '_blank');
                         }
@@ -391,23 +394,33 @@ const UploadInterface = () => {
                     
                     <div className="grid grid-cols-2 gap-2">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (albumData.page?.ar_target_image_url) {
                             const link = document.createElement('a');
                             link.href = albumData.page.ar_target_image_url;
                             link.download = `ar-target-${Date.now()}.png`;
+                            document.body.appendChild(link);
                             link.click();
+                            document.body.removeChild(link);
                           }
                         }}
                       >
                         💾 Save PNG
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => window.print()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.print();
+                        }}
                       >
                         🖨️ Print Page
                       </Button>
