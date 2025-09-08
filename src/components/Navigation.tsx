@@ -40,7 +40,16 @@ const Navigation = () => {
               onClick={() => navigate('/scanner')}
             >
               <Camera className="w-4 h-4 mr-2" />
-              Scanner
+              Demo Scanner
+            </Button>
+          )}
+          {location.pathname !== '/real-ar' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/real-ar')}
+            >
+              🎯 Real AR
             </Button>
           )}
           
