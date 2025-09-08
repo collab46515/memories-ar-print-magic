@@ -17,6 +17,7 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
   const [confidence, setConfidence] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
+  const [pendingVideoUrl, setPendingVideoUrl] = useState<string | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const arVideoRef = useRef<HTMLVideoElement>(null);
@@ -34,6 +35,42 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
   useEffect(() => {
     loadARTargets();
   }, []);
+
+  // Handle video loading after element is rendered
+  useEffect(() => {
+    if (pendingVideoUrl && arVideoRef.current && isPlaying) {
+      addDebugMessage('🎬 Video element ready, loading: ' + pendingVideoUrl.substring(0, 50) + '...');
+      
+      const video = arVideoRef.current;
+      
+      // Add event listeners for debugging
+      video.onloadstart = () => addDebugMessage('📡 Video loading started');
+      video.onloadeddata = () => addDebugMessage('✅ Video data loaded');
+      video.oncanplay = () => addDebugMessage('▶️ Video can start playing');
+      video.onerror = (e) => addDebugMessage('❌ Video error: ' + (e as Event).type);
+      video.onplay = () => addDebugMessage('🎵 Video started playing!');
+      video.onpause = () => addDebugMessage('⏸️ Video paused');
+      
+      video.src = pendingVideoUrl;
+      
+      video.play().then(() => {
+        addDebugMessage('🎵 Play() completed successfully');
+        toast({
+          title: "🎬 AR Video Playing!",
+          description: "Video overlayed with audio",
+        });
+        onVideoDetected?.(pendingVideoUrl);
+        setPendingVideoUrl(null);
+      }).catch((error) => {
+        addDebugMessage('❌ Play failed: ' + error.message);
+        toast({
+          title: "Video Playback Error", 
+          description: "Tap the video to enable audio and play",
+          variant: "destructive"
+        });
+      });
+    }
+  }, [pendingVideoUrl, isPlaying, onVideoDetected, toast]);
 
   const loadARTargets = async () => {
     try {
@@ -167,42 +204,11 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
     }
     
     addDebugMessage('🎬 Setting isPlaying to true');
-    setIsPlaying(true);
     const target = arTargets[0]; // Use first target
-    addDebugMessage(`🎯 Selected target: ${target?.video_url || 'undefined'}`);
+    addDebugMessage(`🎯 Selected target: ${target?.video_url?.substring(0, 50) || 'undefined'}...`);
     
-    if (arVideoRef.current && target) {
-      addDebugMessage('🎬 Playing AR video: ' + target.video_url?.substring(0, 50) + '...');
-      
-      try {
-        arVideoRef.current.src = target.video_url;
-        
-        // Add event listeners for debugging
-        arVideoRef.current.onloadstart = () => addDebugMessage('📡 Video loading started');
-        arVideoRef.current.onloadeddata = () => addDebugMessage('✅ Video data loaded');
-        arVideoRef.current.oncanplay = () => addDebugMessage('▶️ Video can start playing');
-        arVideoRef.current.onerror = (e) => addDebugMessage('❌ Video error: ' + (e as Event).type);
-        arVideoRef.current.onplay = () => addDebugMessage('🎵 Video started playing!');
-        arVideoRef.current.onpause = () => addDebugMessage('⏸️ Video paused');
-        
-        await arVideoRef.current.play();
-        addDebugMessage('🎵 Play() completed successfully');
-        
-        toast({
-          title: "🎬 AR Video Playing!",
-          description: "Video overlayed with audio",
-        });
-        
-        onVideoDetected?.(target.video_url);
-      } catch (error) {
-        addDebugMessage('❌ Play failed: ' + (error as Error).message);
-        toast({
-          title: "Video Playback Error",
-          description: "Tap the video to enable audio and play",
-          variant: "destructive"
-        });
-      }
-    }
+    setIsPlaying(true);
+    setPendingVideoUrl(target?.video_url || null);
   };
 
   const stopARVideo = () => {
