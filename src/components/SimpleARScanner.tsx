@@ -16,6 +16,7 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
   const [isLocked, setIsLocked] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
   const [currentTarget, setCurrentTarget] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const arVideoRef = useRef<HTMLVideoElement>(null);
@@ -23,6 +24,12 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
   const streamRef = useRef<MediaStream | null>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  // Debug helper
+  const addDebug = (message: string) => {
+    console.log(message);
+    setDebugInfo(prev => [...prev.slice(-3), `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
 
   // Load AR targets
   useEffect(() => {
@@ -168,22 +175,39 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
   };
 
   const playARVideo = () => {
-    if (!currentTarget || !arVideoRef.current) return;
+    addDebug('🎯 Play AR Video clicked!');
+    addDebug(`Target: ${currentTarget ? 'Found' : 'Missing'}`);
+    addDebug(`Video element: ${arVideoRef.current ? 'Found' : 'Missing'}`);
     
-    console.log('🎬 Playing AR video overlay...');
+    if (!currentTarget || !arVideoRef.current) {
+      addDebug('❌ Missing target or video ref');
+      toast({
+        title: "Error",
+        description: "No AR target or video element found",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    addDebug('🎬 Setting isPlaying to true...');
     setIsPlaying(true);
     
+    addDebug('📹 Setting video source...');
     const video = arVideoRef.current;
     video.src = currentTarget.video_url;
     
-    // Don't auto-play, let user tap to start
+    // Add debug event listeners
+    video.onloadstart = () => addDebug('📡 Video loading started');
     video.onloadeddata = () => {
-      console.log('✅ AR video loaded and ready');
+      addDebug('✅ AR video loaded and ready');
       toast({
         title: "🎬 AR Video Ready!",
         description: "Tap the video to play with sound",
       });
     };
+    video.onerror = (e) => addDebug('❌ Video error: ' + (e as Event).type);
+    video.onplay = () => addDebug('🎵 Video started playing');
+    video.onpause = () => addDebug('⏸️ Video paused');
 
     onVideoDetected?.(currentTarget.video_url);
   };
@@ -325,6 +349,16 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
           )}
         </div>
       </Card>
+      
+      {/* Debug Console */}
+      {debugInfo.length > 0 && (
+        <Card className="p-3 bg-gray-100">
+          <div className="font-semibold mb-2 text-sm">🐛 Debug:</div>
+          {debugInfo.map((msg, i) => (
+            <div key={i} className="text-xs text-gray-700">{msg}</div>
+          ))}
+        </Card>
+      )}
       
       {isLocked && (
         <Card className="p-4 border-green-200 bg-green-50">
