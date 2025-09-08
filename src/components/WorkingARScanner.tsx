@@ -152,10 +152,16 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
   };
 
   const playARVideo = async () => {
-    if (arTargets.length === 0) return;
+    console.log('🎯 Play AR Video clicked!', { targetsCount: arTargets.length, isLocked });
+    if (arTargets.length === 0) {
+      console.log('❌ No AR targets available');
+      return;
+    }
     
+    console.log('🎬 Setting isPlaying to true');
     setIsPlaying(true);
     const target = arTargets[0]; // Use first target
+    console.log('🎯 Selected target:', target);
     
     if (arVideoRef.current && target) {
       console.log('🎬 Playing AR video:', target.video_url);
