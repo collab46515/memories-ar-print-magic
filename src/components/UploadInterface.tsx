@@ -122,52 +122,90 @@ const UploadInterface = () => {
   const generateARTargetImage = async (videoFileName: string): Promise<string> => {
     if (!uploadedFile) return '';
     
-    // Extract first frame from video to use as AR target
+    // Extract frame from video for AR target
     const video = document.createElement('video');
     video.src = URL.createObjectURL(uploadedFile);
+    video.crossOrigin = 'anonymous';
     
     return new Promise((resolve) => {
       video.addEventListener('loadeddata', () => {
-        // Set video to first frame
-        video.currentTime = 0.5; // 0.5 seconds in to avoid black frame
+        // Seek to 1 second to avoid black frames
+        video.currentTime = 1.0;
         
         video.addEventListener('seeked', async () => {
-          // Create canvas to capture frame
+          // Create canvas for AR target (A4 proportions: 210x297mm ≈ 3:4.2)
           const canvas = document.createElement('canvas');
-          canvas.width = 512; // Standard AR target size
-          canvas.height = 512;
+          canvas.width = 600; // Higher resolution for better tracking
+          canvas.height = 848; // A4 ratio scaled
           const ctx = canvas.getContext('2d')!;
           
-          // Draw video frame to canvas, maintaining aspect ratio
-          const videoAspect = video.videoWidth / video.videoHeight;
-          let drawWidth = canvas.width;
-          let drawHeight = canvas.height;
-          let offsetX = 0;
-          let offsetY = 0;
-          
-          if (videoAspect > 1) {
-            // Video is wider than square
-            drawHeight = canvas.width / videoAspect;
-            offsetY = (canvas.height - drawHeight) / 2;
-          } else {
-            // Video is taller than square
-            drawWidth = canvas.height * videoAspect;
-            offsetX = (canvas.width - drawWidth) / 2;
-          }
-          
-          // Fill background with white
+          // White background
           ctx.fillStyle = 'white';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Calculate video placement (center, maintain aspect ratio)
+          const videoAspect = video.videoWidth / video.videoHeight;
+          const targetAspect = canvas.width / canvas.height;
+          
+          let drawWidth, drawHeight, offsetX, offsetY;
+          
+          if (videoAspect > targetAspect) {
+            // Video wider - fit to width with letterbox top/bottom
+            drawWidth = canvas.width * 0.8; // 80% of canvas width
+            drawHeight = drawWidth / videoAspect;
+            offsetX = canvas.width * 0.1;
+            offsetY = (canvas.height - drawHeight) / 2;
+          } else {
+            // Video taller - fit to height with letterbox sides
+            drawHeight = canvas.height * 0.6; // 60% of canvas height
+            drawWidth = drawHeight * videoAspect;
+            offsetX = (canvas.width - drawWidth) / 2;
+            offsetY = canvas.height * 0.15; // 15% from top
+          }
           
           // Draw video frame
           ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
           
-          // Add tracking markers for better AR detection
-          ctx.fillStyle = 'black';
-          ctx.fillRect(0, 0, 20, 20); // Top-left
-          ctx.fillRect(canvas.width - 20, 0, 20, 20); // Top-right
-          ctx.fillRect(0, canvas.height - 20, 20, 20); // Bottom-left
-          ctx.fillRect(canvas.width - 20, canvas.height - 20, 20, 20); // Bottom-right
+          // Add high-contrast AR tracking markers for better detection
+          const markerSize = 30;
+          const borderWidth = 5;
+          
+          // Corner markers - black squares with white borders for high contrast
+          const corners = [
+            [borderWidth, borderWidth], // Top-left
+            [canvas.width - markerSize - borderWidth, borderWidth], // Top-right
+            [borderWidth, canvas.height - markerSize - borderWidth], // Bottom-left
+            [canvas.width - markerSize - borderWidth, canvas.height - markerSize - borderWidth] // Bottom-right
+          ];
+          
+          corners.forEach(([x, y]) => {
+            // White border
+            ctx.fillStyle = 'white';
+            ctx.fillRect(x - 2, y - 2, markerSize + 4, markerSize + 4);
+            // Black marker
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x, y, markerSize, markerSize);
+            // White center dot for ORB detection
+            ctx.fillStyle = 'white';
+            ctx.fillRect(x + markerSize/2 - 3, y + markerSize/2 - 3, 6, 6);
+          });
+          
+          // Add text overlay for better tracking features
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+          
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 32px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('MEMORIES AR TARGET', canvas.width / 2, canvas.height - 80);
+          
+          ctx.font = '24px Arial';
+          ctx.fillText('Scan with camera to play video', canvas.width / 2, canvas.height - 45);
+          
+          // Add unique pattern based on video for identification
+          const hash = videoFileName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          ctx.font = '16px Arial';
+          ctx.fillText(`ID: ${hash.toString(16).toUpperCase()}`, canvas.width / 2, canvas.height - 15);
           
           // Convert to blob and upload
           canvas.toBlob(async (blob) => {
@@ -176,7 +214,7 @@ const UploadInterface = () => {
               return;
             }
             
-            const targetFileName = `ar-target-${Date.now()}.jpg`;
+            const targetFileName = `ar-target-${Date.now()}.png`;
             const { data, error } = await supabase.storage
               .from('videos')
               .upload(targetFileName, blob);
@@ -192,7 +230,7 @@ const UploadInterface = () => {
               .getPublicUrl(targetFileName);
               
             resolve(urlData.publicUrl);
-          }, 'image/jpeg', 0.9);
+          }, 'image/png', 1.0);
           
           // Cleanup
           URL.revokeObjectURL(video.src);
@@ -290,25 +328,63 @@ const UploadInterface = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Album Page Preview */}
+                {/* Album Page Preview with Download */}
                 <div className="bg-white p-6 rounded-lg shadow-soft border-2 border-secondary/20">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-4 flex items-center justify-center">
-                    <div className="text-center">
-                      <Video className="w-12 h-12 text-primary mx-auto mb-2" />
-                      <p className="text-sm font-medium">{albumData.page?.overlay_json?.title || "Annual Day 2025"}</p>
-                      <p className="text-xs text-muted-foreground">{albumData.page?.overlay_json?.event || "Class 5 Performance"}</p>
-                    </div>
+                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-4 flex items-center justify-center relative">
+                    {albumData.page?.ar_target_image_url ? (
+                      <img 
+                        src={albumData.page.ar_target_image_url}
+                        alt="AR Target" 
+                        className="w-full h-full object-contain rounded"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <Video className="w-12 h-12 text-primary mx-auto mb-2" />
+                        <p className="text-sm font-medium">{albumData.page?.overlay_json?.title || "Annual Day 2025"}</p>
+                        <p className="text-xs text-muted-foreground">{albumData.page?.overlay_json?.event || "Class 5 Performance"}</p>
+                      </div>
+                    )}
                   </div>
                   <h4 className="font-semibold text-center mb-2">{albumData.album?.name || "School Memories Album"}</h4>
-                  <p className="text-xs text-center text-muted-foreground">
-                    Scan this page with the Memories app to watch the video!
+                  <p className="text-xs text-center text-muted-foreground mb-4">
+                    Scan this page with your phone's camera to watch the video!
                   </p>
+                  
+                  <div className="space-y-2">
+                    <Button 
+                      variant="premium" 
+                      size="lg" 
+                      className="w-full"
+                      onClick={() => window.open(albumData.page?.ar_target_image_url, '_blank')}
+                      disabled={!albumData.page?.ar_target_image_url}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download AR Target (PNG)
+                    </Button>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = albumData.page?.ar_target_image_url || '';
+                          link.download = `ar-target-${Date.now()}.png`;
+                          link.click();
+                        }}
+                      >
+                        Save Image
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.print()}
+                      >
+                        Print Page
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                
-                <Button variant="premium" size="lg" className="w-full">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Print-Ready PDF
-                </Button>
               </div>
             )}
           </Card>
@@ -323,11 +399,26 @@ const UploadInterface = () => {
                 Your album page is ready. Print it out and scan with the Memories mobile app to see the video play with audio and overlays.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="hero" size="lg">
-                  Try Mobile App Demo
+                <Button 
+                  variant="hero" 
+                  size="lg"
+                  onClick={() => window.open('/scanner', '_blank')}
+                >
+                  📱 Open AR Scanner
                 </Button>
-                <Button variant="outline" size="lg">
-                  Learn About Printing
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => {
+                    if (albumData.page?.ar_target_image_url) {
+                      const link = document.createElement('a');
+                      link.href = albumData.page.ar_target_image_url;
+                      link.download = `ar-target-${Date.now()}.png`;
+                      link.click();
+                    }
+                  }}
+                >
+                  💾 Download Target
                 </Button>
               </div>
             </Card>

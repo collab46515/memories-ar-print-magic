@@ -456,21 +456,21 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
             className="w-full h-full object-cover"
             playsInline
             muted
+            autoPlay
           />
           
-          {/* AR Video Overlay */}
-          {isPlaying && trackingState.homography && trackingState.corners.length === 4 && (
-            <div 
-              className="absolute inset-0"
-              style={{
-                clipPath: `polygon(${trackingState.corners.map(c => 
-                  `${(c.x / (videoRef.current?.videoWidth || 1)) * 100}% ${(c.y / (videoRef.current?.videoHeight || 1)) * 100}%`
-                ).join(', ')})`
-              }}
-            >
+          {/* AR Video Overlay - positioned absolutely over detected area */}
+          {isPlaying && trackingState.corners.length === 4 && (
+            <div className="absolute inset-0 pointer-events-none">
               <video 
                 ref={arVideoRef}
-                className="w-full h-full object-cover"
+                className="absolute"
+                style={{
+                  left: `${Math.min(...trackingState.corners.map(c => (c.x / (videoRef.current?.videoWidth || 1)) * 100))}%`,
+                  top: `${Math.min(...trackingState.corners.map(c => (c.y / (videoRef.current?.videoHeight || 1)) * 100))}%`,
+                  width: `${(Math.max(...trackingState.corners.map(c => (c.x / (videoRef.current?.videoWidth || 1)) * 100)) - Math.min(...trackingState.corners.map(c => (c.x / (videoRef.current?.videoWidth || 1)) * 100)))}%`,
+                  height: `${(Math.max(...trackingState.corners.map(c => (c.y / (videoRef.current?.videoHeight || 1)) * 100)) - Math.min(...trackingState.corners.map(c => (c.y / (videoRef.current?.videoHeight || 1)) * 100)))}%`,
+                }}
                 controls
                 autoPlay
                 playsInline
