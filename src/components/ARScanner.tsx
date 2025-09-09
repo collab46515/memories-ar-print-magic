@@ -7,6 +7,7 @@ import { Play, Camera as CameraIcon, Square, Target, Lock, Zap } from 'lucide-re
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ARDetector, MatchResult } from '@/utils/cvUtils';
+import { safeNavigator, safeDocument, safeWindow, isBrowser, isCapacitor } from '@/utils/mobileCompat';
 
 interface ARScannerProps {
   onVideoDetected?: (videoUrl: string) => void;
@@ -141,7 +142,7 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
         // Request camera with fallback options
         let stream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
+          stream = await safeNavigator.mediaDevices.getUserMedia({ 
             video: { 
               facingMode: 'environment',
               width: { ideal: 1920 },
@@ -151,7 +152,7 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
           });
         } catch (err) {
           console.warn('High-res camera failed, trying basic camera...', err);
-          stream = await navigator.mediaDevices.getUserMedia({ 
+          stream = await safeNavigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' }
           });
         }
