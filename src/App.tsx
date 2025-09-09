@@ -12,6 +12,7 @@ import RealAR from "./pages/RealAR";
 import NFTAR from "./pages/NFTAR";
 import Auth from "./pages/Auth";
 import Mobile from "./pages/Mobile";
+import CameraTest from "./pages/CameraTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/true-ar" element={<TrueAR />} />
             <Route path="/real-ar" element={<RealAR />} />
             <Route path="/nft-ar" element={<NFTAR />} />
+            <Route path="/camera-test" element={<CameraTest />} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

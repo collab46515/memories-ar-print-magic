@@ -137,6 +137,15 @@ const Navigation = () => {
                   🎯 NFT AR
                 </Button>
               )}
+              {location.pathname !== '/camera-test' && (
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start" 
+                  onClick={() => handleNavigation('/camera-test')}
+                >
+                  📱 Camera Test
+                </Button>
+              )}
               
               {user ? (
                 <div className="pt-2 border-t">
