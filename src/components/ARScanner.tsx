@@ -218,91 +218,18 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
   };
 
   const startContinuousDetection = () => {
-    console.log('🔍 Starting continuous detection...');
+    console.log('🔍 Starting real AR detection...');
     
     // Clear any existing interval
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
     }
     
-    // Start with a simple test detection
-    let detectionCount = 0;
-    
     detectionIntervalRef.current = setInterval(() => {
-      detectionCount++;
-      console.log(`🔄 Detection cycle ${detectionCount}`);
-      
       if (isScanning && videoRef.current) {
-        // Simple fallback detection for testing
-        const mockDetection = Math.random() > 0.7; // 30% chance per cycle
-        
-        if (mockDetection && arTargets.length > 0) {
-          console.log('🎯 Mock detection triggered!');
-          
-          const now = Date.now();
-          const targetId = arTargets[0].id;
-          const confidence = 0.8 + Math.random() * 0.2; // 80-100%
-          
-          setTrackingState(prev => {
-            const lockStartTime = prev.targetId === targetId ? prev.lockStartTime : now;
-            const timeLocked = lockStartTime ? now - lockStartTime : 0;
-            const isLocked = timeLocked >= 1000; // 1 second lock time
-            
-            if (isLocked && !prev.isLocked) {
-              console.log('🔒 TARGET LOCKED! Video ready to play.');
-              toast({
-                title: "🎯 AR Target Detected!",
-                description: "Tap 'Play AR Video' to watch with audio",
-              });
-            }
-            
-            return {
-              targetId,
-              confidence,
-              isLocked,
-              lockStartTime,
-              corners: [
-                { x: 100, y: 100 },
-                { x: 400, y: 100 },
-                { x: 400, y: 300 },
-                { x: 100, y: 300 }
-              ],
-              homography: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-            };
-          });
-          
-          // Draw visual feedback
-          const canvas = overlayCanvasRef.current;
-          if (canvas && videoRef.current) {
-            const ctx = canvas.getContext('2d')!;
-            canvas.width = videoRef.current.clientWidth;
-            canvas.height = videoRef.current.clientHeight;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw detection box
-            const isLocked = Date.now() - now >= 1000;
-            ctx.strokeStyle = isLocked ? '#22c55e' : '#3b82f6';
-            ctx.lineWidth = isLocked ? 4 : 2;
-            ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
-            
-            // Draw confidence
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
-            ctx.fillRect(canvas.width - 120, 10, 110, 30);
-            ctx.fillStyle = 'black';
-            ctx.fillText(`${Math.round(confidence * 100)}%`, canvas.width - 110, 30);
-            
-            if (isLocked) {
-              ctx.fillStyle = '#22c55e';
-              ctx.font = 'bold 18px Arial';
-              ctx.fillText('🔒 LOCKED', canvas.width - 200, 60);
-            }
-          }
-        }
-      } else {
-        console.log('⏸️ Scanning stopped or video not ready');
+        detectARTargets();
       }
-    }, 2000); // Check every 2 seconds for easier testing
+    }, 100); // Check every 100ms for responsive detection
   };
 
   const detectARTargets = async () => {
@@ -624,7 +551,7 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
     <div className="space-y-4">
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">AR Scanner (Debug Mode)</h3>
+          <h3 className="text-lg font-semibold">AR Album Scanner</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Target className="w-4 h-4" />
