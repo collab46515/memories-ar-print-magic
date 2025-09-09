@@ -55,6 +55,11 @@ const Hero = () => {
           <Button variant="outline" size="lg" className="w-full max-w-xs sm:max-w-sm text-white border-white hover:bg-white hover:text-primary">
             Watch How It Works
           </Button>
+          <a href="/mobile" className="w-full max-w-xs sm:max-w-sm">
+            <Button variant="secondary" size="lg" className="w-full">
+              📱 Try Mobile App Demo
+            </Button>
+          </a>
         </div>
       </div>
     </section>

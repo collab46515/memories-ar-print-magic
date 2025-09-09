@@ -11,6 +11,7 @@ import TrueAR from "./pages/TrueAR";
 import RealAR from "./pages/RealAR";
 import NFTAR from "./pages/NFTAR";
 import Auth from "./pages/Auth";
+import Mobile from "./pages/Mobile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/mobile" element={<Mobile />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/simple-ar" element={<SimpleAR />} />
             <Route path="/true-ar" element={<TrueAR />} />
