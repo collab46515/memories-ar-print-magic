@@ -156,68 +156,16 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
       return;
     }
 
-    console.log('🔍 Starting simple AR detection...');
+    console.log('🔍 Starting REAL detection - only for printed targets');
+    addDebug('🎯 Detection will only work with printed AR targets');
     
-    let frame = 0;
-    // Don't set target here, it should already be set from loadARTargets
-    if (!currentTarget && arTargets.length > 0) {
-      addDebug('🔧 Setting current target during detection...');
-      setCurrentTarget(arTargets[0]);
-    }
-
-    detectionIntervalRef.current = setInterval(() => {
-      frame++;
-      
-      if (!videoRef.current || !canvasRef.current) return;
-
-      // Accelerated detection for mobile
-      const progress = Math.min(frame * 15, 100); // Faster progress
-      setDetectionProgress(progress);
-
-      // Optimized canvas rendering
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d')!;
-      const video = videoRef.current;
-      
-      // Only resize canvas if needed
-      if (canvas.width !== video.clientWidth || canvas.height !== video.clientHeight) {
-        canvas.width = video.clientWidth;
-        canvas.height = video.clientHeight;
-      }
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Optimized drawing
-      const alpha = Math.min(progress / 100, 1);
-      ctx.strokeStyle = progress >= 100 ? '#22c55e' : `rgba(59, 130, 246, ${alpha})`;
-      ctx.lineWidth = progress >= 100 ? 4 : 2;
-      ctx.setLineDash(progress >= 100 ? [] : [10, 5]);
-      
-      const boxSize = Math.min(canvas.width * 0.6, canvas.height * 0.6);
-      const x = (canvas.width - boxSize) / 2;
-      const y = (canvas.height - boxSize) / 2;
-      
-      ctx.strokeRect(x, y, boxSize, boxSize);
-
-      // Optimized text rendering
-      ctx.fillStyle = progress >= 100 ? '#22c55e' : '#3b82f6';
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText(`${Math.round(progress)}%`, x + 10, y + 25);
-
-      // Lock when progress reaches 100%
-      if (progress >= 100 && !isLocked) {
-        setIsLocked(true);
-        clearInterval(detectionIntervalRef.current!);
-        detectionIntervalRef.current = null;
-
-        toast({
-          title: "🎯 AR Target Locked!",
-          description: "Ready! Tap 'Play AR Video'",
-        });
-
-        console.log('🔒 AR Target locked! Ready to play video');
-      }
-    }, 200); // Faster cycle for mobile
+    // NO AUTOMATIC PROGRESS - only show progress when actual detection happens
+    // Remove the automatic progress timer
+    
+    toast({
+      title: "📱 Point Camera at Printed Target",
+      description: "Detection only works with the actual printed AR image",
+    });
   };
 
   const playARVideo = () => {

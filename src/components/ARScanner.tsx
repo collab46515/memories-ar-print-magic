@@ -234,74 +234,24 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
 
   const detectARTargets = async () => {
     const video = videoRef.current;
-    if (!video || !arDetectorRef.current) {
-      // Fallback: Simple color-based detection for testing
-      if (video) {
-        console.log('Using fallback detection method...');
-        // Simple detection: look for any significant motion or color change
-        const mockConfidence = Math.random() * 0.8 + 0.2; // 20-100% confidence
-        
-        if (mockConfidence > 0.6 && arTargets.length > 0) {
-          const now = Date.now();
-          const targetId = arTargets[0].id; // Use first target for testing
-          
-          setTrackingState(prev => {
-            const isSameTarget = prev.targetId === targetId;
-            const lockStartTime = isSameTarget ? prev.lockStartTime : now;
-            const timeLocked = lockStartTime ? now - lockStartTime : 0;
-            const isLocked = timeLocked >= 1000; // 1 second for fallback mode
-            
-            return {
-              targetId,
-              confidence: mockConfidence,
-              isLocked,
-              lockStartTime,
-              corners: [
-                { x: 50, y: 50 },
-                { x: 350, y: 50 },
-                { x: 350, y: 250 },
-                { x: 50, y: 250 }
-              ],
-              homography: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-            };
-          });
-          
-          // Draw simple tracking overlay
-          const canvas = overlayCanvasRef.current;
-          if (canvas) {
-            const ctx = canvas.getContext('2d')!;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw detection box
-            ctx.strokeStyle = mockConfidence > 0.7 ? '#22c55e' : '#3b82f6';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(50, 50, 300, 200);
-            
-            // Draw confidence
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
-            ctx.fillText(`${Math.round(mockConfidence * 100)}%`, canvas.width - 80, 30);
-          }
-          
-          return;
-        }
-      }
-      
-      console.log('No video or AR detector available');
+    if (!video || !arDetectorRef.current || arTargets.length === 0) {
+      console.log('❌ Cannot detect - missing video, detector, or targets');
       return;
     }
     
     try {
       const results = await arDetectorRef.current.detectTarget(video);
-      console.log(`Detection results: ${results.size} matches found`);
+      console.log(`🔍 OpenCV detection: ${results.size} matches found`);
       
-      // Find best match
+      // Find best match with strict requirements
       let bestMatch: { targetId: string; result: MatchResult } | null = null;
       let highestConfidence = 0;
       
       for (const [targetId, result] of results.entries()) {
-        console.log(`Target ${targetId}: confidence ${result.confidence}, inliers ${result.inliers}`);
-        if (result.confidence > highestConfidence && result.confidence > 0.4) {
+        console.log(`Target ${targetId}: confidence ${result.confidence.toFixed(3)}, inliers ${result.inliers}`);
+        
+        // Strict requirements for real detection
+        if (result.confidence > 0.7 && result.inliers >= 15 && result.confidence > highestConfidence) {
           highestConfidence = result.confidence;
           bestMatch = { targetId, result };
         }
@@ -309,18 +259,22 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
       
       const now = Date.now();
       
-      if (bestMatch && bestMatch.result.confidence > 0.6) {
-        console.log(`✅ Target detected: ${bestMatch.targetId} with confidence ${bestMatch.result.confidence}`);
+      if (bestMatch && bestMatch.result.confidence > 0.7) {
+        console.log(`✅ REAL TARGET DETECTED: ${bestMatch.targetId} confidence: ${bestMatch.result.confidence.toFixed(3)}`);
         const { targetId, result } = bestMatch;
         
         setTrackingState(prev => {
           const isSameTarget = prev.targetId === targetId;
           const lockStartTime = isSameTarget ? prev.lockStartTime : now;
           const timeLocked = lockStartTime ? now - lockStartTime : 0;
-          const isLocked = timeLocked >= 250 && result.confidence > 0.7; // 250ms stability + high confidence
+          const isLocked = timeLocked >= 500 && result.confidence > 0.8; // Need 500ms + high confidence
           
           if (isLocked && !prev.isLocked) {
-            console.log('🔒 Target LOCKED!');
+            console.log('🔒 REAL TARGET LOCKED! Ready for video.');
+            toast({
+              title: "🎯 Real AR Target Detected!",
+              description: "Your printed target is recognized! Tap play for video.",
+            });
           }
           
           return {
@@ -333,22 +287,14 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
           };
         });
         
-        // Draw tracking overlay
+        // Draw real tracking overlay
         drawTrackingOverlay(result.corners, result.confidence);
         
-        // Auto-lock after stability period
-        if (trackingState.isLocked && !isPlaying && trackingState.targetId === targetId) {
-          const target = arTargets.find(t => t.id === targetId);
-          if (target) {
-            handleTargetLocked(target);
-          }
-        }
-        
       } else {
-        // Lost tracking or low confidence
+        // No real detection - fade out confidence
         setTrackingState(prev => ({
           ...prev,
-          confidence: Math.max(0, prev.confidence - 0.1), // Fade confidence
+          confidence: Math.max(0, prev.confidence - 0.05),
           isLocked: false,
           lockStartTime: null
         }));
@@ -356,14 +302,16 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
         clearTrackingOverlay();
       }
       
-      // Show guidance for poor conditions
+      // Show guidance for poor detection
       const avgConfidence = Array.from(results.values())
-        .reduce((sum, r) => sum + r.confidence, 0) / results.size;
+        .reduce((sum, r) => sum + r.confidence, 0) / (results.size || 1);
       
-      setShowGuidance(results.size === 0 || avgConfidence < 0.3);
+      setShowGuidance(results.size === 0 || avgConfidence < 0.4);
       
     } catch (error) {
       console.error('❌ AR detection error:', error);
+      // Don't show mock detection on error - just clear
+      clearTrackingOverlay();
     }
   };
 
