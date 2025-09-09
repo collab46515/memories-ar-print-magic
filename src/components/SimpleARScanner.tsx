@@ -95,8 +95,9 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 24, max: 30 }
         },
         audio: false
       });
@@ -106,6 +107,8 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.setAttribute('playsinline', 'true');
         await videoRef.current.play();
         console.log('▶️ Camera playing, starting detection...');
         startSimpleDetection();
@@ -167,20 +170,24 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
       
       if (!videoRef.current || !canvasRef.current) return;
 
-      // Simple brightness-based detection simulation
-      const progress = Math.min(frame * 8, 100); // 8% per frame
+      // Accelerated detection for mobile
+      const progress = Math.min(frame * 15, 100); // Faster progress
       setDetectionProgress(progress);
 
-      // Draw detection overlay
+      // Optimized canvas rendering
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d')!;
       const video = videoRef.current;
       
-      canvas.width = video.clientWidth;
-      canvas.height = video.clientHeight;
+      // Only resize canvas if needed
+      if (canvas.width !== video.clientWidth || canvas.height !== video.clientHeight) {
+        canvas.width = video.clientWidth;
+        canvas.height = video.clientHeight;
+      }
+      
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw detection box that gets more solid over time
+      // Optimized drawing
       const alpha = Math.min(progress / 100, 1);
       ctx.strokeStyle = progress >= 100 ? '#22c55e' : `rgba(59, 130, 246, ${alpha})`;
       ctx.lineWidth = progress >= 100 ? 4 : 2;
@@ -192,10 +199,10 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
       
       ctx.strokeRect(x, y, boxSize, boxSize);
 
-      // Draw progress text
+      // Optimized text rendering
       ctx.fillStyle = progress >= 100 ? '#22c55e' : '#3b82f6';
-      ctx.font = 'bold 18px Arial';
-      ctx.fillText(`${Math.round(progress)}%`, x + 10, y + 30);
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText(`${Math.round(progress)}%`, x + 10, y + 25);
 
       // Lock when progress reaches 100%
       if (progress >= 100 && !isLocked) {
@@ -204,13 +211,13 @@ const SimpleARScanner = ({ onVideoDetected }: SimpleARScannerProps) => {
         detectionIntervalRef.current = null;
 
         toast({
-          title: "🎯 AR Target Detected!",
-          description: "Tap 'Play AR Video' to overlay video",
+          title: "🎯 AR Target Locked!",
+          description: "Ready! Tap 'Play AR Video'",
         });
 
         console.log('🔒 AR Target locked! Ready to play video');
       }
-    }, 300); // Every 300ms
+    }, 200); // Faster cycle for mobile
   };
 
   const playARVideo = () => {

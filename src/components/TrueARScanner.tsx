@@ -77,11 +77,11 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
     // Clear existing content
     containerRef.current.innerHTML = '';
 
-    // Create A-Frame scene with AR.js
+    // Create A-Frame scene optimized for mobile
     const sceneHTML = `
       <a-scene 
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-        renderer="logarithmicDepthBuffer: true;"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
+        renderer="logarithmicDepthBuffer: true; antialias: false; precision: mediump;"
         background="transparent"
         vr-mode-ui="enabled: false"
         gesture-detector

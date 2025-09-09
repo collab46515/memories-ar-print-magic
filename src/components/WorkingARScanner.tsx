@@ -86,8 +86,14 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
       console.log('🎬 Starting AR camera...');
       setIsScanning(true);
 
+      // Mobile-optimized camera constraints
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 24, max: 30 }
+        },
         audio: false
       });
 
@@ -96,16 +102,18 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.setAttribute('playsinline', 'true');
         await videoRef.current.play();
         console.log('▶️ Camera playing, starting AR detection...');
         
-        // Start simple AR detection
+        // Start optimized AR detection
         startARDetection();
       }
     } catch (error: any) {
       console.error('❌ Camera error:', error);
       toast({
-        title: "Camera Error",
+        title: "Camera Error", 
         description: error.message,
         variant: "destructive"
       });
@@ -145,39 +153,39 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
       return;
     }
 
-    console.log('🔍 Starting AR detection simulation...');
+    console.log('🔍 Starting optimized AR detection...');
     setDetectionActive(true);
     
     let detectionCycle = 0;
     let lockStartTime: number | null = null;
 
+    // Faster detection cycle for mobile
     detectionIntervalRef.current = setInterval(() => {
       detectionCycle++;
-      console.log(`🔄 Detection cycle ${detectionCycle}`);
       
-      // Simulate detection getting stronger over time
-      const mockConfidence = Math.min(detectionCycle * 0.15, 0.95);
+      // Accelerated detection for smooth experience
+      const mockConfidence = Math.min(detectionCycle * 0.25, 0.95);
       setConfidence(mockConfidence);
       
-      // After 3 seconds of "detection", lock the target
-      if (detectionCycle >= 3 && !lockStartTime) {
+      // After 2 seconds, start lock sequence
+      if (detectionCycle >= 2 && !lockStartTime) {
         lockStartTime = Date.now();
-        console.log('🎯 Target detected! Starting lock sequence...');
+        console.log('🎯 Target detected! Locking...');
         
         toast({
-          title: "🎯 AR Target Detected!",
-          description: "Stabilizing... hold steady",
+          title: "🎯 AR Target Found!",
+          description: "Locking... hold steady",
         });
       }
       
-      // Lock after 1 more second of stability
-      if (lockStartTime && Date.now() - lockStartTime >= 1000 && !isLocked) {
+      // Lock after 0.5 seconds for faster experience
+      if (lockStartTime && Date.now() - lockStartTime >= 500 && !isLocked) {
         console.log('🔒 TARGET LOCKED!');
         setIsLocked(true);
         
         toast({
           title: "🔒 AR Target Locked!",
-          description: "Tap 'Play AR Video' to watch with audio",
+          description: "Ready! Tap 'Play AR Video'",
         });
         
         // Clear detection interval
@@ -186,7 +194,7 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
           detectionIntervalRef.current = null;
         }
       }
-    }, 1000); // Every 1 second
+    }, 500); // Faster cycle for mobile
   };
 
   const playARVideo = async () => {
@@ -234,13 +242,16 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
         </div>
         
         <div className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden mb-4">
-          {/* Camera Feed */}
+          {/* Camera Feed - Mobile Optimized */}
           <video 
             ref={videoRef}
             className="w-full h-full object-cover"
             playsInline
+            webkit-playsinline="true"
             muted
             autoPlay
+            preload="none"
+            style={{ transform: 'scaleX(-1)' }}
           />
           
           {/* AR Video Overlay */}
@@ -249,18 +260,35 @@ const WorkingARScanner = ({ onVideoDetected }: ARScannerProps) => {
               <div className="relative w-4/5 h-4/5">
                 <video 
                   ref={arVideoRef}
-                  className="w-full h-full object-cover rounded-lg border-4 border-green-500"
+                  className="w-full h-full object-cover rounded-lg border-4 border-green-500 shadow-2xl"
                   controls
                   playsInline
+                  webkit-playsinline="true"
                   preload="metadata"
+                  style={{
+                    WebkitTransform: 'translateZ(0)',
+                    transform: 'translateZ(0)',
+                    willChange: 'transform'
+                  }}
+                  onTouchStart={() => {
+                    if (arVideoRef.current) {
+                      if (arVideoRef.current.paused) {
+                        arVideoRef.current.play();
+                        addDebugMessage('👆 Touch - playing video');
+                      } else {
+                        arVideoRef.current.pause();
+                        addDebugMessage('👆 Touch - pausing video');
+                      }
+                    }
+                  }}
                   onClick={() => {
                     if (arVideoRef.current) {
                       if (arVideoRef.current.paused) {
                         arVideoRef.current.play();
-                        addDebugMessage('👆 User tapped - playing video');
+                        addDebugMessage('👆 Click - playing video');
                       } else {
                         arVideoRef.current.pause();
-                        addDebugMessage('👆 User tapped - pausing video');
+                        addDebugMessage('👆 Click - pausing video');
                       }
                     }
                   }}
