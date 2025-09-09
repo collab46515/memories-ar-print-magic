@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.5c9ad63012a94ddbbfa47a1da675cfd2',
+  appId: 'com.lovable.memoriesarprint',
   appName: 'memories-ar-print-magic',
   webDir: 'dist',
   server: {
