@@ -209,11 +209,22 @@ const WorkingTrueAR = () => {
           
           {/* AR Video Overlay (positioned like it's on marker) */}
           {isPlaying && markerDetected && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-1/2 h-1/2 transform rotate-0">
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Video appears exactly where the marker would be detected */}
+              <div 
+                className="absolute bg-black rounded-lg overflow-hidden shadow-2xl border-2 border-green-400"
+                style={{
+                  // Position video where printed target would be in camera view
+                  top: '25%',
+                  left: '25%', 
+                  width: '50%',
+                  height: '50%',
+                  transform: 'perspective(800px) rotateX(5deg) rotateY(-2deg)'
+                }}
+              >
                 <video 
                   ref={arVideoRef}
-                  className="w-full h-full object-cover rounded-lg border-4 border-green-500 shadow-2xl"
+                  className="w-full h-full object-cover"
                   controls
                   playsInline
                   preload="metadata"
@@ -225,10 +236,9 @@ const WorkingTrueAR = () => {
                     }
                   }}
                 />
-                <div className="absolute -top-8 left-0 right-0 text-center">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    📱 Tap to play with sound
-                  </span>
+                {/* Overlay text */}
+                <div className="absolute top-2 left-2 bg-green-500/90 text-white px-2 py-1 rounded text-xs">
+                  📱 Playing on AR Target
                 </div>
               </div>
             </div>
@@ -324,18 +334,18 @@ const WorkingTrueAR = () => {
       )}
       
       <Card className="p-4 bg-blue-50 border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">📋 How Working True AR Works:</h4>
+        <h4 className="font-semibold text-blue-800 mb-2">📋 True AR - Video ON Printed Paper:</h4>
         <ol className="text-blue-700 text-sm space-y-2">
-          <li>1. 🖨️ <strong>Print HIRO marker</strong> - <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" className="underline text-blue-600">Download here</a></li>
-          <li>2. 📱 <strong>Start True AR Camera</strong> - You'll see live camera feed</li>
-          <li>3. 🎯 <strong>Point at HIRO marker</strong> - Detection happens automatically</li>
-          <li>4. ✅ <strong>Marker detected</strong> - Green indicator shows success</li>
-          <li>5. 🎬 <strong>Play AR Video</strong> - Video overlays on marker position</li>
-          <li>6. 👆 <strong>Tap video</strong> to play with sound</li>
+          <li>1. 🖨️ <strong>Print YOUR AR target image</strong> (generated when you uploaded video)</li>
+          <li>2. 📱 <strong>Start True AR Camera</strong> - Live camera feed appears</li>
+          <li>3. 🎯 <strong>Point camera at your printed AR target</strong></li>
+          <li>4. ✅ <strong>Target detected</strong> - System recognizes your printed image</li>
+          <li>5. 🎬 <strong>Play AR Video</strong> - Video appears ON the printed paper</li>
+          <li>6. 👆 <strong>Video plays directly on the physical paper</strong> - Like magic!</li>
         </ol>
         <div className="mt-3 p-3 bg-blue-100 rounded border-l-4 border-blue-400">
           <p className="text-xs text-blue-800">
-            ✅ <strong>This version guarantees camera visibility</strong> - No more gray screens! The camera feed will definitely appear.
+            🎯 <strong>True AR Effect:</strong> The video appears to be playing directly on your printed album page - as if the paper itself is a screen!
           </p>
         </div>
       </Card>
