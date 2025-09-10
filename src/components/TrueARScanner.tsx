@@ -91,72 +91,66 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
     if (!containerRef.current || arTargets.length === 0) return;
 
     const target = arTargets[0]; // Use first target
-    addDebug('🎯 Creating AR scene for YOUR custom target image...');
+    addDebug('🎯 Creating True AR scene with visible camera...');
 
     // Clear existing content
     containerRef.current.innerHTML = '';
     
-    // Create A-Frame scene optimized for custom image tracking
+    // Create A-Frame scene that properly shows camera
     const sceneHTML = `
       <a-scene 
-        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480; smoothCount: 10; smoothTolerance: 0.01; smoothThreshold: 5;"
-        renderer="logarithmicDepthBuffer: true; antialias: false; precision: mediump;"
-        background="transparent"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: https://ar-js-org.github.io/AR.js/data/data/camera_para.dat; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
+        renderer="logarithmicDepthBuffer: true; antialias: true; alpha: true; precision: mediump;"
+        background="transparent: true"
         vr-mode-ui="enabled: false"
         gesture-detector
         id="ar-scene"
+        style="width: 100%; height: 100%;"
       >
-        <!-- Custom Image Marker - uses YOUR generated AR target -->
-        <a-image
-          id="custom-target"
-          src="${target.ar_target_image_url}"
-          position="0 0 -3"
-          width="2.1"
-          height="2.97"
-          visible="false"
-        ></a-image>
-
-        <!-- Marker entity that tracks your custom image -->
-        <a-entity
-          id="marker-entity"
-          geometry="primitive: plane; width: 2.1; height: 2.97"
-          material="src: ${target.ar_target_image_url}; transparent: true; opacity: 0.1"
-          position="0 0 0"
-          rotation="-90 0 0"
+        <!-- Marker with your custom target (fallback to hiro for now) -->
+        <a-marker
+          preset="hiro"
+          id="ar-marker"
+          registerevents="true"
+          smooth="true"
+          smoothCount="10"
+          smoothTolerance="0.01"
+          smoothThreshold="5"
         >
-          <!-- Video that will appear ON your printed target -->
+          <!-- Video that appears on marker -->
           <a-video
             src="${target.video_url}"
-            position="0 0 0.01"
-            rotation="0 0 0"
-            width="1.8"
+            position="0 0 0"
+            rotation="-90 0 0"
+            width="1.5"
             height="1.5"
             play="false"
             id="ar-video"
             crossorigin="anonymous"
           ></a-video>
           
-          <!-- Play button overlay -->
+          <!-- Play button -->
           <a-plane
-            position="0 -0.8 0.02"
-            rotation="0 0 0"
-            width="1"
-            height="0.3"
-            color="rgba(0,0,0,0.8)"
+            position="0 0 0.01"
+            rotation="-90 0 0" 
+            width="1.5"
+            height="0.4"
+            color="#000000"
+            opacity="0.8"
             id="play-overlay"
           >
             <a-text
-              value="▶ TAP TO PLAY VIDEO"
+              value="▶ TAP TO PLAY"
               position="0 0 0.01"
               align="center"
               color="white"
-              scale="0.8 0.8 0.8"
+              scale="0.4 0.4 0.4"
             ></a-text>
           </a-plane>
-        </a-entity>
+        </a-marker>
 
-        <!-- Camera -->
-        <a-entity camera look-controls></a-entity>
+        <!-- Camera entity -->
+        <a-camera-static />
       </a-scene>
     `;
 
@@ -171,7 +165,7 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
   const setupAREvents = () => {
     addDebug('🔧 Setting up AR event listeners...');
 
-    const marker = document.querySelector('#marker-entity');
+    const marker = document.querySelector('#ar-marker');
     const video = document.querySelector('#ar-video') as any;
     const playOverlay = document.querySelector('#play-overlay');
 
@@ -180,34 +174,24 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
       return;
     }
 
-    // Custom marker detection events
-    let isTracking = false;
-    
-    // Simulate tracking of custom image (since AR.js NFT is complex)
-    const startCustomTracking = () => {
-      addDebug('🔍 Starting custom image tracking...');
-      
-      setTimeout(() => {
-        if (!isTracking) {
-          isTracking = true;
-          addDebug('🎯 Custom AR target detected!');
-          
-          // Show the marker entity
-          if (marker) {
-            marker.setAttribute('visible', 'true');
-            marker.setAttribute('position', '0 0 0');
-          }
-          
-          toast({
-            title: "🎯 Your AR Target Found!",
-            description: "Video is now overlaid on your printed image! Tap to play.",
-          });
-        }
-      }, 2000); // Simulate 2-second detection time
-    };
+    addDebug('✅ AR elements found - setting up events');
 
-    // Start tracking when camera is ready
-    setTimeout(startCustomTracking, 1000);
+    // Marker found event
+    marker.addEventListener('markerFound', () => {
+      addDebug('🎯 HIRO marker detected in camera!');
+      toast({
+        title: "🎯 AR Target Found!",
+        description: "Video is now on the marker! Tap to play with sound.",
+      });
+    });
+
+    // Marker lost event  
+    marker.addEventListener('markerLost', () => {
+      addDebug('📤 AR marker lost');
+      if (video) {
+        video.pause();
+      }
+    });
 
     // Play button click
     playOverlay?.addEventListener('click', () => {
@@ -299,19 +283,19 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
         </Card>
       )}
       
-      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-        <h4 className="font-semibold text-green-800 mb-2">🎯 Your Custom AR Target:</h4>
-        <ol className="text-green-700 text-sm space-y-2">
-          <li>1. 🖨️ <strong>Print YOUR AR target image</strong> (generated when you uploaded video)</li>
+      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+        <h4 className="font-semibold text-amber-800 mb-2">📋 True AR Instructions:</h4>
+        <ol className="text-amber-700 text-sm space-y-2">
+          <li>1. 🖨️ <strong>Print HIRO marker</strong> - <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" className="underline text-amber-600">Download here</a></li>
           <li>2. 📱 <strong>Start True AR scanner</strong> above</li>
-          <li>3. 🎯 <strong>Point camera at your printed AR target</strong></li>
-          <li>4. ✨ <strong>Video will appear directly ON your printed image</strong></li>
-          <li>5. 👆 <strong>Tap the video</strong> to play with sound</li>
-          <li>6. 📐 <strong>Video follows your paper</strong> as you move it around!</li>
+          <li>3. 📸 <strong>Allow camera access</strong> when prompted</li>
+          <li>4. 🎯 <strong>Point camera at printed HIRO marker</strong></li>
+          <li>5. ✨ <strong>Video appears ON the marker</strong> and tracks with it</li>
+          <li>6. 👆 <strong>Tap the video</strong> to play with sound</li>
         </ol>
-        <div className="mt-3 p-3 bg-green-100 rounded border-l-4 border-green-400">
-          <p className="text-xs text-green-800">
-            🎨 <strong>Your Custom AR:</strong> This uses YOUR generated AR target image with video frame + tracking markers. The video appears directly on your printed album page!
+        <div className="mt-3 p-3 bg-amber-100 rounded border-l-4 border-amber-400">
+          <p className="text-xs text-amber-800">
+            🔧 <strong>Troubleshooting:</strong> If you see gray screen, check camera permissions and try refreshing. The camera feed should appear when AR.js loads properly.
           </p>
         </div>
       </div>
