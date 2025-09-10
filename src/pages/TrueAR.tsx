@@ -1,6 +1,6 @@
 import React from 'react';
 import Navigation from '@/components/Navigation';
-import TrueARScanner from '@/components/TrueARScanner';
+import WorkingTrueAR from '@/components/WorkingTrueAR';
 
 const TrueAR = () => {
   return (
@@ -25,7 +25,7 @@ const TrueAR = () => {
             </div>
           </div>
           
-          <TrueARScanner />
+          <WorkingTrueAR />
           
         </div>
       </main>
