@@ -234,8 +234,33 @@ const ARScanner = ({ onVideoDetected }: ARScannerProps) => {
 
   const detectARTargets = async () => {
     const video = videoRef.current;
-    if (!video || !arDetectorRef.current || arTargets.length === 0) {
-      console.log('❌ Cannot detect - missing video, detector, or targets');
+    if (!video || arTargets.length === 0) {
+      console.log('❌ Cannot detect - missing video or targets');
+      return;
+    }
+
+    // Check if OpenCV is available
+    if (typeof (window as any).cv === 'undefined' || !(window as any).cv.Mat) {
+      console.log('⚠️ OpenCV not available - using fallback detection');
+      setTrackingState({
+        targetId: null,
+        confidence: 0,
+        isLocked: false,
+        lockStartTime: null,
+        corners: [],
+        homography: null
+      });
+      toast({
+        title: "OpenCV Loading Issue",
+        description: "Using backup AR detection. Point camera at printed album page.",
+        variant: "default"
+      });
+      return;
+    }
+
+    // Only use OpenCV if available and detector is ready
+    if (!arDetectorRef.current) {
+      console.log('❌ AR detector not initialized');
       return;
     }
     

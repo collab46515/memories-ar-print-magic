@@ -1,6 +1,6 @@
 import React from 'react';
 import Navigation from '@/components/Navigation';
-import SimpleARScanner from '@/components/SimpleARScanner';
+import SimpleARDetector from '@/components/SimpleARDetector';
 
 const SimpleAR = () => {
   return (
@@ -25,7 +25,7 @@ const SimpleAR = () => {
             </div>
           </div>
           
-          <SimpleARScanner />
+          <SimpleARDetector />
           
         </div>
       </main>
