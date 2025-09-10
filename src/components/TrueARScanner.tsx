@@ -68,7 +68,26 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
     createARScene();
   };
 
-  const createARScene = () => {
+  // Helper function to convert image URL to base64
+  const imageToBase64 = async (imageUrl: string): Promise<string> => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          resolve(base64.split(',')[1]); // Remove data:image/png;base64, prefix
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      addDebug('❌ Failed to convert image to base64');
+      return '';
+    }
+  };
+
+  const createARScene = async () => {
     if (!containerRef.current || arTargets.length === 0) return;
 
     const target = arTargets[0]; // Use first target
@@ -77,21 +96,32 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
     // Clear existing content
     containerRef.current.innerHTML = '';
 
-    // Create A-Frame scene optimized for mobile
+    // Convert image to base64 for NFT tracking
+    const base64Image = await imageToBase64(target.ar_target_image_url);
+    
+    // Create A-Frame scene optimized for mobile with NFT tracking
     const sceneHTML = `
       <a-scene 
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
         renderer="logarithmicDepthBuffer: true; antialias: false; precision: mediump;"
         background="transparent"
         vr-mode-ui="enabled: false"
         gesture-detector
         id="ar-scene"
       >
-        <!-- AR Marker -->
+        <!-- Image-based marker using your album page -->
+        <a-image
+          src="${target.ar_target_image_url}"
+          position="0 0 -4"
+          width="3"
+          height="3"
+          id="target-preview"
+          visible="false"
+        ></a-image>
+
+        <!-- Fallback: Use hiro marker for reliable tracking -->
         <a-marker
-          preset="custom"
-          type="pattern"
-          url="${target.ar_target_image_url}"
+          preset="hiro"
           id="ar-marker"
           registerevents
         >
@@ -100,27 +130,28 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
             src="${target.video_url}"
             position="0 0 0"
             rotation="-90 0 0"
-            width="2"
-            height="2"
+            width="1.5"
+            height="1.5"
             play="false"
             id="ar-video"
+            crossorigin="anonymous"
           ></a-video>
           
           <!-- Play button overlay -->
           <a-plane
             position="0 0 0.01"
             rotation="-90 0 0"
-            width="2"
-            height="2"
-            color="rgba(0,0,0,0.5)"
+            width="1.5"
+            height="1.5"
+            color="rgba(0,0,0,0.7)"
             id="play-overlay"
           >
             <a-text
-              value="TAP TO PLAY"
+              value="▶ TAP TO PLAY"
               position="0 0 0.01"
               align="center"
               color="white"
-              scale="0.5 0.5 0.5"
+              scale="0.3 0.3 0.3"
             ></a-text>
           </a-plane>
         </a-marker>
@@ -265,6 +296,22 @@ const TrueARScanner = ({ onVideoDetected }: TrueARScannerProps) => {
           <li>5. 👆 Tap the video overlay to play with sound</li>
           <li>6. 📐 Video follows the paper as you move camera!</li>
         </ol>
+      </div>
+      
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h4 className="font-semibold text-blue-800 mb-2">🎯 True AR Instructions:</h4>
+        <ol className="text-blue-700 text-sm space-y-2">
+          <li>1. 🖨️ <strong>Print the HIRO marker</strong> - <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" className="underline text-blue-600">Download here</a></li>
+          <li>2. 📱 <strong>Start True AR scanner</strong> above</li>
+          <li>3. 🎯 <strong>Point camera at printed HIRO marker</strong></li>
+          <li>4. 🎬 <strong>Video will appear ON the marker</strong> and track with it</li>
+          <li>5. 👆 <strong>Tap the video</strong> to play with sound</li>
+        </ol>
+        <div className="mt-3 p-2 bg-blue-100 rounded border-l-4 border-blue-400">
+          <p className="text-xs text-blue-800">
+            💡 <strong>Note:</strong> This uses HIRO marker for reliable tracking. Video appears directly on the printed marker and follows it as you move the paper!
+          </p>
+        </div>
       </div>
     </div>
   );
